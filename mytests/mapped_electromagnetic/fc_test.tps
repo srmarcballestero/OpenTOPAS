@@ -257,8 +257,8 @@ sc:Ge/SC_AbsorberBlockSolidCollectorTopLayer/Color = "Maroon"
 sc:Ge/SC_AbsorberBlockSolidCollectorTopLayer/DrawingStyle = "FullWireFrame"
 
 s:Ge/FieldContainer/Field = "ElectroMagneticFieldMap"
-s:Ge/FieldContainer/ElectricField3DTable = "/nfs/asmfs01/asm/home/balles_m/GitHub/OpenTOPAS/mytests/mapped_electromagnetic/fc_E.TABLE"
-s:Ge/FieldContainer/MagneticField3DTable = "/nfs/asmfs01/asm/home/balles_m/GitHub/OpenTOPAS/mytests/mapped_electromagnetic/fc_B.TABLE"
+s:Ge/FieldContainer/ElectricField3DTable = "./mytests/mapped_electromagnetic/fc_E.csv"
+s:Ge/FieldContainer/MagneticField3DTable = "./mytests/mapped_electromagnetic/fc_B.csv"
 
 s:Gr/View/Type = "OpenGL"
 b:Gr/View/IncludeAxes = "True"
