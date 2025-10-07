@@ -23,7 +23,7 @@ data_e = []
 for x in xs_e:
     for y in ys_e:
         for z in zs_e:
-            data_e.append([x, y, z, 0.0, e_field_strength, 0.0])
+            data_e.append([x, y, z, 0.01*e_field_strength, e_field_strength, -0.1*e_field_strength])
 df_e = pd.DataFrame(data_e, columns=header_e)
 df_e.to_csv(o_dir / "electric_field.csv", index=False)
 data_b = []
