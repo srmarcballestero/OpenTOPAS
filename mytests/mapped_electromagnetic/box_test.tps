@@ -20,11 +20,8 @@ i:Gr/View/ElectricFieldArrowDensity = 5
 
 
 s:Ge/BoxWithField/Field = "ElectroMagneticFieldMap"
-s:Ge/BoxWithField/ElectricField3DTable = "/nfs/asmfs01/asm/home/balles_m/GitHub/OpenTOPAS/mytests/mapped_electromagnetic/electric_field.csv"
-s:Ge/BoxWithField/MagneticField3DTable = "/nfs/asmfs01/asm/home/balles_m/GitHub/OpenTOPAS/mytests/mapped_electromagnetic/magnetic_field.csv"
-
-
-
+s:Ge/BoxWithField/ElectricField3DTable = "./mytests/mapped_electromagnetic/electric_field.csv"
+s:Ge/BoxWithField/MagneticField3DTable = "./mytests/mapped_electromagnetic/magnetic_field.csv"
 
 s:So/Demo/Type = "Beam" # Beam, Isotropic, Emittance or PhaseSpace
 s:So/Demo/Component = "BeamPosition"
