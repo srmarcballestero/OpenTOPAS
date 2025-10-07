@@ -1,6 +1,6 @@
 #!/bin/bash
 
-src_dir=".."
+src_dir="$HOME/GitHub/OpenTOPAS"
 extensions_flag=""
 build_name="build"
 
@@ -53,7 +53,11 @@ cat <<EOL > "../../installs/$build_name/setup_env.sh"
 topas_dir="\$HOME/GitHub/OpenTOPAS/installs/$build_name"
 
 export TOPAS_G4_DATA_DIR="\$HOME/Applications/GEANT4/G4DATA"
-export LD_LIBRARY_PATH="\$HOME/Applications/GEANT4/geant4-install/lib64:\$LD_LIBRARY_PATH"
+if [ -d "\$HOME/Applications/GEANT4/geant4-install/lib64" ]; then
+    export LD_LIBRARY_PATH="\$HOME/Applications/GEANT4/geant4-install/lib64:\$LD_LIBRARY_PATH"
+else
+    export LD_LIBRARY_PATH="\$HOME/Applications/GEANT4/geant4-install/lib:\$LD_LIBRARY_PATH"
+fi
 
 export QT_QPA_PLATFORM_PLUGIN_PATH="\$topas_dir/Frameworks"
 export LD_LIBRARY_PATH="\$topas_dir/lib:\$LD_LIBRARY_PATH"
