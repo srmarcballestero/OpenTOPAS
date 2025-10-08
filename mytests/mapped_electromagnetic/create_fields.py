@@ -5,12 +5,12 @@ from pathlib import Path
 
 o_dir = Path(__file__).parent
 
-xs_e = np.linspace(-1.5, 1, 21)
-xs_b = np.linspace(-1, 1, 257)
-ys_e = np.linspace(-1.75, 1, 10)
-ys_b = np.linspace(-1, 1, 45)
-zs_e = np.linspace(-2, 2, 100)
-zs_b = np.linspace(-2, 2, 10)
+xs_e = np.linspace(-1, 1, 21)
+xs_b = np.linspace(-1, 1, 21)
+ys_e = np.linspace(-1, 1, 21)
+ys_b = np.linspace(-1, 1, 21)
+zs_e = np.linspace(-2, 2, 41)
+zs_b = np.linspace(-2, 2, 41)
 
 e_field_strength = 1.0e4  # V/m
 b_field_strength = 1.0e1  # G
