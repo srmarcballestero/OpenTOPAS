@@ -286,6 +286,22 @@ void TsElectricFieldMap::ReadCSVFile(const G4String& filename) {
     fMinY = sortedY.front(), fMaxY = sortedY.back();
     fMinZ = sortedZ.front(), fMaxZ = sortedZ.back();
 
+    // Check if coordinates are inverted and swap if necessary
+    if (fMaxX < fMinX) {
+        std::swap(fMaxX, fMinX);
+        fInvertX = true;
+    }
+
+    if (fMaxY < fMinY) {
+        std::swap(fMaxY, fMinY);
+        fInvertY = true;
+    }
+
+    if (fMaxZ < fMinZ) {
+        std::swap(fMaxZ, fMinZ);
+        fInvertZ = true;
+    }
+
     // Initialize 3D field arrays
     fFieldX.resize(fNX);
     fFieldY.resize(fNX);
