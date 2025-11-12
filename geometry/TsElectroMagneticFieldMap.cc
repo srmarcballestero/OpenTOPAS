@@ -345,6 +345,22 @@ void TsElectroMagneticFieldMap::ReadCSVFileE(const G4String& filename) {
     eMinY = sortedY.front(), eMaxY = sortedY.back();
     eMinZ = sortedZ.front(), eMaxZ = sortedZ.back();
 
+    // Check if coordinates are inverted and swap if necessary
+    if (eMaxX < eMinX) {
+        std::swap(eMaxX, eMinX);
+        eInvertX = true;
+    }
+
+    if (eMaxY < eMinY) {
+        std::swap(eMaxY, eMinY);
+        eInvertY = true;
+    }
+
+    if (eMaxZ < eMinZ) {
+        std::swap(eMaxZ, eMinZ);
+        eInvertZ = true;
+    }
+
     // Initialize 3D field arrays
     eFieldX.resize(eNX);
     eFieldY.resize(eNX);
@@ -578,6 +594,22 @@ void TsElectroMagneticFieldMap::ReadCSVFileB(const G4String& filename) {
     bMinX = sortedX.front(), bMaxX = sortedX.back();
     bMinY = sortedY.front(), bMaxY = sortedY.back();
     bMinZ = sortedZ.front(), bMaxZ = sortedZ.back();
+
+    // Check if coordinates are inverted and swap if necessary
+    if (bMaxX < bMinX) {
+        std::swap(bMaxX, bMinX);
+        bInvertX = true;
+    }
+
+    if (bMaxY < bMinY) {
+        std::swap(bMaxY, bMinY);
+        bInvertY = true;
+    }
+
+    if (bMaxZ < bMinZ) {
+        std::swap(bMaxZ, bMinZ);
+        bInvertZ = true;
+    }
 
     // Initialize 3D field arrays
     bFieldX.resize(bNX);
