@@ -36,6 +36,7 @@
 #include "TsVarianceManager.hh"
 
 #include "TsPhotoNeutron.hh"
+#include "TsEmMicroElecPhysics.hh"
 #include "TsGeometricalParticleSplit.hh"
 #include "TsGeometrySampler.hh"
 #include "TsIStore.hh"
@@ -139,6 +140,7 @@ TsModularPhysicsList::TsModularPhysicsList(TsParameterManager* pM, TsExtensionMa
 		SetVerboseLevel(fPm->GetIntegerParameter("Ph/Verbosity"));
 
 	fPhysicsTable.insert(std::make_pair("tsphotoneutron", new Creator<TsPhotoNeutron>()));
+	fPhysicsTable.insert(std::make_pair("g4em-microelec", new Creator<TsEmMicroElecPhysics>()));
 	fPhysicsTable.insert(std::make_pair("g4h-chargeexchange", new Creator<G4ChargeExchangePhysics>()));
 	fPhysicsTable.insert(std::make_pair("g4decay", new Creator<G4DecayPhysics>()));
 	fPhysicsTable.insert(std::make_pair("g4em-dna", new Creator<G4EmDNAPhysics>()));
