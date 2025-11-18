@@ -52,7 +52,7 @@ s:So/Demo/BeamPositionCutoffShape = "Rectangle"
 d:So/Demo/BeamPositionCutoffX = 0.1 cm
 d:So/Demo/BeamPositionCutoffY = 0.1 cm
 s:So/Demo/BeamAngularDistribution = "None"
-i:So/Demo/NumberOfHistoriesInRun = 1
+i:So/Demo/NumberOfHistoriesInRun = 5
 
 # Beam position
 s:Ge/BeamPosition/Type = "Group"
