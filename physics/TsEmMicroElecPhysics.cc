@@ -27,6 +27,23 @@
 // *                                                                  *
 // ********************************************************************
 //
+// IMPORTANT NOTE ABOUT MICROELEC MATERIALS:
+// =========================================
+// Geant4's MicroElec models require material structure data files located in:
+// $G4EMLOW/microelec/Structure/Data_<MATERIAL>.dat
+//
+// By default, only these materials are supported:
+//   Si, Cu, Ge, Ag, Al, C, Ni, Ti, W, KAPTON, SILICON_DIOXIDE
+//
+// If your simulation contains other materials (e.g., AIR, WATER, Vacuum),
+// you must create dummy structure files for them, or the simulation will
+// crash with "file not found" error. Use the provided script:
+//   scripts/create_dummy_microelec_materials.sh
+//
+// The dummy files have very high energy limits (1e10 eV) so MicroElec models
+// will never actually activate for these materials - they only exist to prevent
+// the initialization crash.
+//
 
 #include "TsEmMicroElecPhysics.hh"
 #include "TsParameterManager.hh"
@@ -135,6 +152,12 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	param->SetNumberOfBinsPerDecade(20);
 	param->ActivateAngularGeneratorForIonisation(true);
 	param->SetAuger(true);
+
+	// ========================================================================
+	// Add MicroElec region to EM parameters
+	// This tells Geant4 to only activate MicroElec in the "microelec" region
+	// ========================================================================
+	param->AddMicroElec("microelec");
 
 	// ========================================================================
 	// Set up atomic deexcitation
@@ -251,15 +274,20 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 0.0, 10*TeV, new G4UniversalFluctuation());
 
 	// Activate MicroElec elastic model in microelec region
+	// NOTE: Models will be created lazily during first use to avoid
+	// loading material data for regions outside "microelec"
 	mod = new G4MicroElecElasticModel_new();
+	mod->SetHighEnergyLimit(100*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.1*eV, 100*MeV);
 
 	// Activate MicroElec inelastic model in microelec region
 	mod = new G4MicroElecInelasticModel_new();
+	mod->SetHighEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.1*eV, 10*MeV);
 
 	// Activate MicroElec LO phonon model in microelec region
 	mod = new G4MicroElecLOPhononModel();
+	mod->SetHighEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecLOPhonon", mod, "microelec", 0.1*eV, 10*MeV);
 
 	// ------------------------------------------------------------------------
