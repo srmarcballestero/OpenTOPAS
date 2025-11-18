@@ -6,7 +6,10 @@ build_name="build"
 
 geant4_install_dir="$HOME/Applications/GEANT4/geant4-install"
 
+# Parse all arguments first
 no_graphics_flag="ON"
+rebuild_geant4=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --extensions-dir)
@@ -22,13 +25,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         --rebuild-geant4)
-            echo "Rebuilding Geant4..."
-            mkdir -p $HOME/GitHub/geant4-v11.1.3/builds/$build_name
-            mkdir -p $HOME/GitHub/geant4-v11.1.3/installs/$build_name
-            cd $HOME/GitHub/geant4-v11.1.3/builds/$build_name
-            cmake $HOME/GitHub/geant4-v11.1.3 -DGEANT4_INSTALL_DATA=OFF -DGEANT4_BUILD_MULTITHREADED=ON -DCMAKE_INSTALL_PREFIX=$HOME/GitHub/geant4-v11.1.3/installs/$build_name -DCMAKE_PREFIX_PATH=/usr/lib/qt5 -DGEANT4_USE_QT=$no_graphics_flag -DGEANT4_USE_OPENGL_X11=$no_graphics_flag -DGEANT4_USE_RAYTRACER_X11=$no_graphics_flag 
-            make -j20 install
-            geant4_install_dir="$HOME/GitHub/geant4-v11.1.3/installs/$build_name"
+            rebuild_geant4=true
             shift
             ;;
         *)
@@ -37,6 +34,17 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
+
+# Execute Geant4 rebuild if requested
+if [ "$rebuild_geant4" = true ]; then
+    echo "Rebuilding Geant4..."
+    mkdir -p $HOME/GitHub/geant4-v11.1.3/builds/$build_name
+    mkdir -p $HOME/GitHub/geant4-v11.1.3/installs/$build_name
+    cd $HOME/GitHub/geant4-v11.1.3/builds/$build_name
+    cmake $HOME/GitHub/geant4-v11.1.3 -DGEANT4_INSTALL_DATA=OFF -DGEANT4_BUILD_MULTITHREADED=ON -DCMAKE_INSTALL_PREFIX=$HOME/GitHub/geant4-v11.1.3/installs/$build_name -DCMAKE_PREFIX_PATH=/usr/lib/qt5 -DGEANT4_USE_QT=$no_graphics_flag -DGEANT4_USE_OPENGL_X11=$no_graphics_flag -DGEANT4_USE_RAYTRACER_X11=$no_graphics_flag 
+    make -j20 install
+    geant4_install_dir="$HOME/GitHub/geant4-v11.1.3/installs/$build_name"
+fi
 
 export Geant4_DIR=$geant4_install_dir
 export GDCM_DIR=$HOME/Applications/GDCM/gdcm-install
