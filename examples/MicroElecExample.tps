@@ -7,7 +7,7 @@
 
 # World volume
 s:Ge/World/Type = "TsBox"
-s:Ge/World/Material = "Vacuum"
+s:Ge/World/Material = "G4_AIR"
 d:Ge/World/HLX = 1.0 cm
 d:Ge/World/HLY = 1.0 cm
 d:Ge/World/HLZ = 1.0 cm
@@ -15,10 +15,10 @@ d:Ge/World/HLZ = 1.0 cm
 # MicroElec target region (e.g., Silicon detector)
 s:Ge/Target/Type = "TsBox"
 s:Ge/Target/Parent = "World"
-s:Ge/Target/Material = "G4_Cu"
+s:Ge/Target/Material = "G4_Al"
 d:Ge/Target/HLX = 0.5 cm
 d:Ge/Target/HLY = 0.5 cm
-d:Ge/Target/HLZ = 0.01 mm
+d:Ge/Target/HLZ = 0.1 mm
 d:Ge/Target/TransZ = 0.0 cm
 
 b:Ts/UseQt = "True"
@@ -28,7 +28,7 @@ b:Ts/UseQt = "True"
 s:Ge/Target/AssignToRegionNamed = "microelec"
 
 # Physics settings
-sv:Ph/Default/Modules = 2 "g4em-microelec" "g4em-standard_opt4"
+sv:Ph/Default/Modules = 7 "g4em-microelec" "g4em-standard_opt4" "g4h-phy_QGSP_BIC_HP" "g4decay" "g4ion-binarycascade" "g4h-elastic_HP" "g4stopping"
 
 # Set very low production cuts to track low-energy electrons
 d:Ph/Default/ForRegion/microelec/CutForAllParticles = 1 nm
