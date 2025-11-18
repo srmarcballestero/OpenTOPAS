@@ -27,23 +27,6 @@
 // *                                                                  *
 // ********************************************************************
 //
-// IMPORTANT NOTE ABOUT MICROELEC MATERIALS:
-// =========================================
-// Geant4's MicroElec models require material structure data files located in:
-// $G4EMLOW/microelec/Structure/Data_<MATERIAL>.dat
-//
-// By default, only these materials are supported:
-//   Si, Cu, Ge, Ag, Al, C, Ni, Ti, W, KAPTON, SILICON_DIOXIDE
-//
-// If your simulation contains other materials (e.g., AIR, WATER, Vacuum),
-// you must create dummy structure files for them, or the simulation will
-// crash with "file not found" error. Use the provided script:
-//   scripts/create_dummy_microelec_materials.sh
-//
-// The dummy files have very high energy limits (1e10 eV) so MicroElec models
-// will never actually activate for these materials - they only exist to prevent
-// the initialization crash.
-//
 
 #include "TsEmMicroElecPhysics.hh"
 #include "TsParameterManager.hh"
@@ -51,6 +34,9 @@
 #include "G4SystemOfUnits.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4ProcessManager.hh"
+#include "G4ProductionCutsTable.hh"
+#include "G4MaterialCutsCouple.hh"
+#include <fstream>
 
 // MicroElec models and processes
 #include "G4MicroElecElastic.hh"
@@ -146,18 +132,18 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	param->SetDefaults();
 	param->SetBuildCSDARange(true);
 	param->SetMscStepLimitType(fUseSafety);
+
+	// CRITICAL: Tell Geant4 to only initialize MicroElec models for materials
+	// in regions designated as MicroElec regions. This prevents errors when
+	// materials outside the MicroElec database exist in the geometry.
+	param->RegionsMicroElec();
+
 	param->SetMinEnergy(0.1*eV);
 	param->SetMaxEnergy(10*TeV);
 	param->SetLowestElectronEnergy(0*eV);
 	param->SetNumberOfBinsPerDecade(20);
 	param->ActivateAngularGeneratorForIonisation(true);
 	param->SetAuger(true);
-
-	// ========================================================================
-	// Add MicroElec region to EM parameters
-	// This tells Geant4 to only activate MicroElec in the "microelec" region
-	// ========================================================================
-	param->AddMicroElec("microelec");
 
 	// ========================================================================
 	// Set up atomic deexcitation
@@ -255,6 +241,8 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// ========================================================================
 	// Configure region-specific models (for "microelec" region)
 	// NOTE: TOPAS converts all region names to lowercase
+	// NOTE: Models are instantiated here but only activated in the "microelec" region
+	//       Models will only initialize their material data when actually used
 	// ========================================================================
 	G4EmConfigurator* em_config = G4LossTableManager::Instance()->EmConfigurator();
 	G4VEmModel* mod;
@@ -274,20 +262,15 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 0.0, 10*TeV, new G4UniversalFluctuation());
 
 	// Activate MicroElec elastic model in microelec region
-	// NOTE: Models will be created lazily during first use to avoid
-	// loading material data for regions outside "microelec"
 	mod = new G4MicroElecElasticModel_new();
-	mod->SetHighEnergyLimit(100*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.1*eV, 100*MeV);
 
 	// Activate MicroElec inelastic model in microelec region
 	mod = new G4MicroElecInelasticModel_new();
-	mod->SetHighEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.1*eV, 10*MeV);
 
 	// Activate MicroElec LO phonon model in microelec region
 	mod = new G4MicroElecLOPhononModel();
-	mod->SetHighEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecLOPhonon", mod, "microelec", 0.1*eV, 10*MeV);
 
 	// ------------------------------------------------------------------------
@@ -327,4 +310,58 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: MicroElec processes constructed successfully" << G4endl;
+}
+
+//....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
+
+void TsEmMicroElecPhysics::ValidateMicroElecMaterials()
+{
+	// This method checks if all materials in the geometry have corresponding
+	// MicroElec data files. If not, it warns the user.
+	// Called before model initialization to help diagnose issues.
+
+	const char* path = G4FindDataDir("G4LEDATA");
+	if (!path) {
+		G4cout << "TsEmMicroElecPhysics: WARNING - G4LEDATA not set, cannot validate materials" << G4endl;
+		return;
+	}
+
+	G4ProductionCutsTable* theCoupleTable = G4ProductionCutsTable::GetProductionCutsTable();
+	G4int numOfCouples = (G4int)theCoupleTable->GetTableSize();
+
+	G4cout << "\nTsEmMicroElecPhysics: Validating materials for MicroElec compatibility..." << G4endl;
+
+	for (G4int i = 0; i < numOfCouples; ++i) {
+		const G4Material* material = theCoupleTable->GetMaterialCutsCouple(i)->GetMaterial();
+		G4String matName = material->GetName();
+
+		if (matName == "Vacuum" || matName == "G4_Vacuum") {
+			if (fVerbose > 1)
+				G4cout << "  [OK] " << matName << " (special case - no data file needed)" << G4endl;
+			continue;
+		}
+
+		// Process material name (remove G4_ prefix if present)
+		G4String processedName = matName;
+		if (processedName.substr(0, 3) == "G4_") {
+			processedName = processedName.substr(3);
+		}
+
+		// Check if data file exists
+		std::ostringstream fileName;
+		fileName << path << "/microelec/Structure/Data_" << processedName << ".dat";
+		std::ifstream testFile(fileName.str().c_str());
+
+		if (!testFile) {
+			G4cout << "  [WARN] " << matName << " - NO MicroElec data file found" << G4endl;
+			G4cout << "         Expected: " << fileName.str() << G4endl;
+			G4cout << "         This material must NOT be in the 'microelec' region!" << G4endl;
+		} else {
+			if (fVerbose > 1)
+				G4cout << "  [OK] " << matName << " - MicroElec data file found" << G4endl;
+			testFile.close();
+		}
+	}
+
+	G4cout << "TsEmMicroElecPhysics: Material validation complete.\n" << G4endl;
 }

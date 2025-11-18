@@ -50,6 +50,9 @@ public:
 private:
   TsParameterManager* fPm;
   G4int fVerbose;
+
+  // Helper method to validate materials before model initialization
+  void ValidateMicroElecMaterials();
 };
 
 #endif
