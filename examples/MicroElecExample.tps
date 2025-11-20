@@ -7,7 +7,7 @@
 
 # World volume
 s:Ge/World/Type = "TsBox"
-s:Ge/World/Material = "G4_AIR"
+s:Ge/World/Material = "Vacuum"
 d:Ge/World/HLX = 1.0 cm
 d:Ge/World/HLY = 1.0 cm
 d:Ge/World/HLZ = 1.0 cm
