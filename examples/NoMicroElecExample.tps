@@ -25,10 +25,10 @@ b:Ts/UseQt = "True"
 
 # Define MicroElec region - CRITICAL for MicroElec physics to activate
 # Note: TOPAS automatically converts region names to lowercase
-s:Ge/Target/AssignToRegionNamed = "microelec"
+# s:Ge/Target/AssignToRegionNamed = "microelec"
 
 # Physics settings
-sv:Ph/Default/Modules = 7 "g4em-microelec" "g4em-standard_opt4" "g4h-phy_QGSP_BIC_HP" "g4decay" "g4ion-binarycascade" "g4h-elastic_HP" "g4stopping"
+sv:Ph/Default/Modules = 6 "g4em-standard_opt4" "g4h-phy_QGSP_BIC_HP" "g4decay" "g4ion-binarycascade" "g4h-elastic_HP" "g4stopping"
 
 # Set very low production cuts to track low-energy electrons
 d:Ph/Default/ForRegion/microelec/CutForAllParticles = 1 nm
