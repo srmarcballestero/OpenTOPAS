@@ -172,8 +172,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		if (particleName == "e-")
 		{
-			// NOTE: Standard MSC and ionisation are already added by g4em-standard_opt4
-			// We only add MicroElec-specific processes
+			// NOTE: Standard MSC and ionisation are added by g4em-standard_opt4
+			// and remain active above 10 MeV for ionization, 100 MeV for MSC.
+			// We add MicroElec-specific processes (active only in microelec region)
 
 			// MicroElec elastic (uses dummy model in World, activated in Target)
 			G4MicroElecElastic* microElecElastic = new G4MicroElecElastic("e-_G4MicroElecElastic");
@@ -200,8 +201,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "proton")
 		{
-			// NOTE: Standard ionisation is already added by g4em-standard_opt4
-			// We only add MicroElec-specific processes
+			// NOTE: Standard ionisation is added by g4em-standard_opt4.
+			// In microelec region: Bragg (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
+			// and MicroElec (100 eV-10 MeV) provide complete coverage.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("p_G4MicroElecInelastic");
@@ -214,8 +216,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "alpha")
 		{
-			// NOTE: Standard ionisation is already added by g4em-standard_opt4
-			// We only add MicroElec-specific processes
+			// NOTE: Standard ionisation is added by g4em-standard_opt4.
+			// In microelec region: BraggIon (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
+			// and MicroElec (100 eV-10 MeV) provide complete coverage.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("alpha_G4MicroElecInelastic");
@@ -228,8 +231,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "GenericIon")
 		{
-			// NOTE: Standard ionisation is already added by g4em-standard_opt4
-			// We only add MicroElec-specific processes
+			// NOTE: Standard ionisation is added by g4em-standard_opt4.
+			// In microelec region: BraggIon (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
+			// and MicroElec (100 eV-10 MeV) provide complete coverage.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("ion_G4MicroElecInelastic");
@@ -277,12 +281,17 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
 
-	// Deactivate standard Bethe-Bloch below 10 MeV
+	// Bragg model for low-energy protons (provides delta ray production)
+	mod = new G4BraggModel();
+	mod->SetActivationHighEnergyLimit(2*MeV);
+	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+
+	// Bethe-Bloch model for high-energy protons (above 10 MeV)
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
 
-	// Activate MicroElec inelastic model for protons
+	// Activate MicroElec inelastic model for protons (100 eV - 10 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
 	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
@@ -291,22 +300,39 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Alpha particles in microelec region
 	// ------------------------------------------------------------------------
 
+	// Bragg ion model for low-energy alphas (provides delta ray production)
+	mod = new G4BraggIonModel();
+	mod->SetActivationHighEnergyLimit(2*MeV);
+	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+
+	// Bethe-Bloch model for high-energy alphas (above 10 MeV)
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
+	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
+
+	// Activate MicroElec inelastic model for alphas (100 eV - 10 MeV)
+	mod = new G4MicroElecInelasticModel_new();
+	mod->SetActivationLowEnergyLimit(100*eV);
+	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
 
 	// ------------------------------------------------------------------------
 	// Generic ions in microelec region
 	// ------------------------------------------------------------------------
 
+	// Bragg ion model for low-energy generic ions (provides delta ray production)
+	mod = new G4BraggIonModel();
+	mod->SetActivationHighEnergyLimit(2*MeV);
+	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+
+	// Bethe-Bloch model for high-energy generic ions (above 10 MeV)
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
+	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
 
-	// Activate MicroElec inelastic model for generic ions
+	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 0.0, 10*MeV);
+	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: MicroElec processes constructed successfully" << G4endl;
