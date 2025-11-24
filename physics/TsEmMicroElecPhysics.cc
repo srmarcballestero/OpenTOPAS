@@ -283,7 +283,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Bragg model for low-energy protons (provides delta ray production)
 	mod = new G4BraggModel();
-	mod->SetActivationHighEnergyLimit(2*MeV);
 	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
 
 	// Bethe-Bloch model for high-energy protons (above 10 MeV)
@@ -302,7 +301,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Bragg ion model for low-energy alphas (provides delta ray production)
 	mod = new G4BraggIonModel();
-	mod->SetActivationHighEnergyLimit(2*MeV);
 	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
 
 	// Bethe-Bloch model for high-energy alphas (above 10 MeV)
@@ -321,7 +319,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Bragg ion model for low-energy generic ions (provides delta ray production)
 	mod = new G4BraggIonModel();
-	mod->SetActivationHighEnergyLimit(2*MeV);
 	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
 
 	// Bethe-Bloch model for high-energy generic ions (above 10 MeV)
@@ -339,55 +336,3 @@ void TsEmMicroElecPhysics::ConstructProcess()
 }
 
 //....oooOO0OOooo........oooOO0OOooo........oooOO0OOooo........oooOO0OOooo....
-
-void TsEmMicroElecPhysics::ValidateMicroElecMaterials()
-{
-	// This method checks if all materials in the geometry have corresponding
-	// MicroElec data files. If not, it warns the user.
-	// Called before model initialization to help diagnose issues.
-
-	const char* path = G4FindDataDir("G4LEDATA");
-	if (!path) {
-		G4cout << "TsEmMicroElecPhysics: WARNING - G4LEDATA not set, cannot validate materials" << G4endl;
-		return;
-	}
-
-	G4ProductionCutsTable* theCoupleTable = G4ProductionCutsTable::GetProductionCutsTable();
-	G4int numOfCouples = (G4int)theCoupleTable->GetTableSize();
-
-	G4cout << "\nTsEmMicroElecPhysics: Validating materials for MicroElec compatibility..." << G4endl;
-
-	for (G4int i = 0; i < numOfCouples; ++i) {
-		const G4Material* material = theCoupleTable->GetMaterialCutsCouple(i)->GetMaterial();
-		G4String matName = material->GetName();
-
-		if (matName == "Vacuum" || matName == "G4_Vacuum") {
-			if (fVerbose > 1)
-				G4cout << "  [OK] " << matName << " (special case - no data file needed)" << G4endl;
-			continue;
-		}
-
-		// Process material name (remove G4_ prefix if present)
-		G4String processedName = matName;
-		if (processedName.substr(0, 3) == "G4_") {
-			processedName = processedName.substr(3);
-		}
-
-		// Check if data file exists
-		std::ostringstream fileName;
-		fileName << path << "/microelec/Structure/Data_" << processedName << ".dat";
-		std::ifstream testFile(fileName.str().c_str());
-
-		if (!testFile) {
-			G4cout << "  [WARN] " << matName << " - NO MicroElec data file found" << G4endl;
-			G4cout << "         Expected: " << fileName.str() << G4endl;
-			G4cout << "         This material must NOT be in the 'microelec' region!" << G4endl;
-		} else {
-			if (fVerbose > 1)
-				G4cout << "  [OK] " << matName << " - MicroElec data file found" << G4endl;
-			testFile.close();
-		}
-	}
-
-	G4cout << "TsEmMicroElecPhysics: Material validation complete.\n" << G4endl;
-}
