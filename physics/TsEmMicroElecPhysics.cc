@@ -327,12 +327,13 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Deactivate BraggIon model below 10 MeV in microelec region (conflicts with MicroElec)
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
+	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
 
+	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 0.0, 10*MeV);
+	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: MicroElec processes constructed successfully" << G4endl;
