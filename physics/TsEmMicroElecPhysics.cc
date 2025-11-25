@@ -74,6 +74,7 @@
 #include "G4Electron.hh"
 #include "G4Positron.hh"
 #include "G4Proton.hh"
+#include "G4Alpha.hh"
 #include "G4GenericIon.hh"
 
 // Atomic deexcitation
@@ -117,6 +118,9 @@ void TsEmMicroElecPhysics::ConstructParticle()
 
 	// Baryons
 	G4Proton::ProtonDefinition();
+
+	// Ions
+	G4Alpha::AlphaDefinition();
 	G4GenericIon::GenericIonDefinition();
 }
 
@@ -202,8 +206,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		else if (particleName == "proton")
 		{
 			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: Bragg (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
-			// and MicroElec (100 eV-10 MeV) provide complete coverage.
+			// In microelec region: MicroElec (100 eV-10 MeV) and Bethe-Bloch (>10 MeV)
+			// provide complete coverage. Bragg model is NOT used to avoid conflicts
+			// with MicroElec secondary electron production.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("p_G4MicroElecInelastic");
@@ -217,8 +222,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		else if (particleName == "alpha")
 		{
 			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: BraggIon (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
-			// and MicroElec (100 eV-10 MeV) provide complete coverage.
+			// In microelec region: MicroElec (100 eV-10 MeV) and Bethe-Bloch (>10 MeV)
+			// provide complete coverage. Bragg ion model is NOT used to avoid conflicts
+			// with MicroElec secondary electron production.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("alpha_G4MicroElecInelastic");
@@ -232,8 +238,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		else if (particleName == "GenericIon")
 		{
 			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: BraggIon (100 keV-2 MeV), Bethe-Bloch (>10 MeV),
-			// and MicroElec (100 eV-10 MeV) provide complete coverage.
+			// In microelec region: MicroElec (100 eV-10 MeV) and Bethe-Bloch (>10 MeV)
+			// provide complete coverage. Bragg ion model is NOT used to avoid conflicts
+			// with MicroElec secondary electron production.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("ion_G4MicroElecInelastic");
@@ -281,9 +288,8 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
 
-	// Bragg model for low-energy protons (provides delta ray production)
-	mod = new G4BraggModel();
-	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+	// NOTE: Bragg model is NOT used because MicroElec model extends below 100 keV
+	// Using Bragg (100 keV - 2 MeV) would create conflicts with MicroElec delta ray production
 
 	// Bethe-Bloch model for high-energy protons (above 10 MeV)
 	mod = new G4BetheBlochModel();
@@ -299,9 +305,8 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Alpha particles in microelec region
 	// ------------------------------------------------------------------------
 
-	// Bragg ion model for low-energy alphas (provides delta ray production)
-	mod = new G4BraggIonModel();
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+	// NOTE: Bragg ion model is NOT used because MicroElec model extends below 100 keV
+	// Using Bragg (100 keV - 2 MeV) would create conflicts with MicroElec delta ray production
 
 	// Bethe-Bloch model for high-energy alphas (above 10 MeV)
 	mod = new G4BetheBlochModel();
@@ -317,9 +322,8 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Generic ions in microelec region
 	// ------------------------------------------------------------------------
 
-	// Bragg ion model for low-energy generic ions (provides delta ray production)
-	mod = new G4BraggIonModel();
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 100*keV, 2*MeV, new G4UniversalFluctuation());
+	// NOTE: Bragg ion model is NOT used because MicroElec model extends below 100 keV
+	// Using Bragg (100 keV - 2 MeV) would create conflicts with MicroElec delta ray production
 
 	// Bethe-Bloch model for high-energy generic ions (above 10 MeV)
 	mod = new G4BetheBlochModel();
