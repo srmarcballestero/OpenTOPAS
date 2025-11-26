@@ -1162,14 +1162,24 @@ G4ThreeVector TsElectroMagneticFieldMap::GetFieldValueE(const G4ThreeVector loca
 	G4double FieldY;
 	G4double FieldZ;
 
-    if (localPoint.x() >= eMinX && localPoint.x() <= eMaxX &&
-        localPoint.y() >= eMinY && localPoint.y() <= eMaxY &&
-        localPoint.z() >= eMinZ && localPoint.z() <= eMaxZ) {
+    // Add small epsilon to avoid numerical issues at exact boundaries
+    const G4double epsilon = 1.0e-9 * mm;
+
+    if (localPoint.x() >= (eMinX - epsilon) && localPoint.x() <= (eMaxX + epsilon) &&
+        localPoint.y() >= (eMinY - epsilon) && localPoint.y() <= (eMaxY + epsilon) &&
+        localPoint.z() >= (eMinZ - epsilon) && localPoint.z() <= (eMaxZ + epsilon)) {
+
+        // Handle single-point grids (avoid division by zero)
+        if (eNX == 1 && eNY == 1 && eNZ == 1) {
+            // Single point field - return that value directly
+            G4ThreeVector E_local = G4ThreeVector(eFieldX[0][0][0], eFieldY[0][0][0], eFieldZ[0][0][0]);
+            return fAffineTransf.TransformAxis(E_local);
+        }
 
         // Position of a given point within region, normalized to the range [0,1]
-        G4double xFraction = (localPoint.x() - eMinX) / eDX;
-        G4double yFraction = (localPoint.y() - eMinY) / eDY;
-        G4double zFraction = (localPoint.z() - eMinZ) / eDZ;
+        G4double xFraction = (eDX > 0) ? (localPoint.x() - eMinX) / eDX : 0.0;
+        G4double yFraction = (eDY > 0) ? (localPoint.y() - eMinY) / eDY : 0.0;
+        G4double zFraction = (eDZ > 0) ? (localPoint.z() - eMinZ) / eDZ : 0.0;
 
         if (eInvertX)
             xFraction = 1 - xFraction;
@@ -1258,14 +1268,25 @@ G4ThreeVector TsElectroMagneticFieldMap::GetFieldValueB(const G4ThreeVector loca
 	G4double FieldY;
 	G4double FieldZ;
 
-    if (localPoint.x() >= bMinX && localPoint.x() <= bMaxX &&
-        localPoint.y() >= bMinY && localPoint.y() <= bMaxY &&
-        localPoint.z() >= bMinZ && localPoint.z() <= bMaxZ) {
+    // Add small epsilon to avoid numerical issues at exact boundaries
+    // TODO: test with multiple surfaces
+    const G4double epsilon = 1.0e-9 * mm; // TODO: define in terms of world size and step size of G4
+
+    if (localPoint.x() >= (bMinX - epsilon) && localPoint.x() <= (bMaxX + epsilon) &&
+        localPoint.y() >= (bMinY - epsilon) && localPoint.y() <= (bMaxY + epsilon) &&
+        localPoint.z() >= (bMinZ - epsilon) && localPoint.z() <= (bMaxZ + epsilon)) {
+
+        // Handle single-point grids (avoid division by zero)
+        if (bNX == 1 && bNY == 1 && bNZ == 1) {
+            // Single point field - return that value directly
+            G4ThreeVector B_local = G4ThreeVector(bFieldX[0][0][0], bFieldY[0][0][0], bFieldZ[0][0][0]);
+            return fAffineTransf.TransformAxis(B_local);
+        }
 
         // Position of a given point within region, normalized to the range [0,1]
-        G4double xFraction = (localPoint.x() - bMinX) / bDX;
-        G4double yFraction = (localPoint.y() - bMinY) / bDY;
-        G4double zFraction = (localPoint.z() - bMinZ) / bDZ;
+        G4double xFraction = (bDX > 0) ? (localPoint.x() - bMinX) / bDX : 0.0;
+        G4double yFraction = (bDY > 0) ? (localPoint.y() - bMinY) / bDY : 0.0;
+        G4double zFraction = (bDZ > 0) ? (localPoint.z() - bMinZ) / bDZ : 0.0;
 
         if (bInvertX)
             xFraction = 1 - xFraction;
@@ -1348,7 +1369,7 @@ G4ThreeVector TsElectroMagneticFieldMap::GetFieldValueB(const G4ThreeVector loca
 
 }
 
-void TsElectroMagneticFieldMap::GetFieldValue(const G4double Point[3], G4double* Field) const {
+void TsElectroMagneticFieldMap::GetFieldValue(const G4double Point[4], G4double* Field) const {
 	const G4ThreeVector localPoint = fAffineTransf.Inverse().TransformPoint(G4ThreeVector(Point[0], Point[1], Point[2]));
 
     G4ThreeVector E_global = GetFieldValueE(localPoint);
