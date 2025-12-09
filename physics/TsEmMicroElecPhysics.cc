@@ -64,7 +64,8 @@
 #include "G4BraggModel.hh"
 #include "G4BraggIonModel.hh"
 #include "G4BetheBlochModel.hh"
-#include "G4UrbanMscModel.hh"
+#include "G4GoudsmitSaundersonMscModel.hh"
+#include "G4WentzelVIModel.hh"
 #include "G4MollerBhabhaModel.hh"
 #include "G4IonFluctuations.hh"
 #include "G4UniversalFluctuation.hh"
@@ -264,27 +265,29 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Electrons in microelec region
 	// ------------------------------------------------------------------------
 
-	// Deactivate standard MSC below 1 keV in microelec region
-	G4UrbanMscModel* msc = new G4UrbanMscModel();
-	msc->SetActivationLowEnergyLimit(100*MeV);
-	em_config->SetExtraEmModel("e-", "msc", msc, "microelec");
+	// Use Goudsmit-Saunderson MSC model between 1 keV and 100 MeV in microelec region
+	G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
+	msc_gs->SetActivationLowEnergyLimit(1*keV);
+	msc_gs->SetActivationHighEnergyLimit(100*MeV);
+	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 1*keV, 100*MeV);
 
-	// Deactivate standard ionisation below 1 keV in microelec region
-	mod = new G4MollerBhabhaModel();
-	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 0.0, 10*TeV, new G4UniversalFluctuation());
+	// Use WentzelVI MSC model above 100 MeV in microelec region
+	G4WentzelVIModel* msc_wentzel = new G4WentzelVIModel();
+	msc_wentzel->SetActivationLowEnergyLimit(100*MeV);
+	em_config->SetExtraEmModel("e-", "msc", msc_wentzel, "microelec", 100*MeV, 10*TeV);
 
 	// Activate MicroElec elastic model in microelec region
 	mod = new G4MicroElecElasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.1*eV, 100*MeV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.1*eV, 1*keV);
+
+	// Deactivate standard ionisation below 1 keV in microelec region
+	mod = new G4MollerBhabhaModel();
+	mod->SetActivationLowEnergyLimit(1*keV);
+	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 1*keV, 10*TeV, new G4UniversalFluctuation());
 
 	// Activate MicroElec inelastic model in microelec region
 	mod = new G4MicroElecInelasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.1*eV, 10*MeV);
-
-	// Activate MicroElec LO phonon model in microelec region
-	mod = new G4MicroElecLOPhononModel();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecLOPhonon", mod, "microelec", 0.1*eV, 10*MeV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.1*eV, 1*keV);
 
 	// ------------------------------------------------------------------------
 	// Protons in microelec region
@@ -292,13 +295,13 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Deactivate Bragg model below 2 MeV in microelec region (conflicts with MicroElec)
 	mod = new G4BetheBlochModel();
-	mod->SetActivationLowEnergyLimit(10*MeV);
+	mod->SetActivationLowEnergyLimit(2*MeV);
 	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for protons (100 eV - 2 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
+	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 2*MeV);
 
 	// ------------------------------------------------------------------------
 	// Alpha particles in microelec region
@@ -306,13 +309,13 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Deactivate BraggIon model below 8 MeV in microelec region (conflicts with MicroElec)
 	mod = new G4BetheBlochModel();
-	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
+	mod->SetActivationLowEnergyLimit(8*MeV);
+	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 8*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for alphas (100 eV - 8 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 10*MeV);
+	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 8*MeV);
 
 	// ------------------------------------------------------------------------
 	// Generic ions in microelec region
