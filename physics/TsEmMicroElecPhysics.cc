@@ -266,12 +266,12 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Deactivate standard MSC below 1 keV in microelec region
 	G4UrbanMscModel* msc = new G4UrbanMscModel();
-	msc->SetActivationLowEnergyLimit(1*keV);
+	msc->SetActivationLowEnergyLimit(100*MeV);
 	em_config->SetExtraEmModel("e-", "msc", msc, "microelec");
 
 	// Deactivate standard ionisation below 1 keV in microelec region
 	mod = new G4MollerBhabhaModel();
-	mod->SetActivationLowEnergyLimit(1*keV);
+	mod->SetActivationLowEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 0.0, 10*TeV, new G4UniversalFluctuation());
 
 	// Activate MicroElec elastic model in microelec region
