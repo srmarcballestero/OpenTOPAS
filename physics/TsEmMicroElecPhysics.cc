@@ -291,42 +291,42 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// ------------------------------------------------------------------------
 
 	// Deactivate Bragg model below 2 MeV in microelec region (conflicts with MicroElec)
-	mod = new G4BraggModel();
-	mod->SetActivationLowEnergyLimit(2*MeV);
-	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 0.0, 2*MeV, new G4IonFluctuations());
+	mod = new G4BetheBlochModel();
+	mod->SetActivationLowEnergyLimit(10*MeV);
+	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for protons (100 eV - 2 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 2*MeV);
+	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
 
 	// ------------------------------------------------------------------------
 	// Alpha particles in microelec region
 	// ------------------------------------------------------------------------
 
 	// Deactivate BraggIon model below 8 MeV in microelec region (conflicts with MicroElec)
-	mod = new G4BraggIonModel();
-	mod->SetActivationLowEnergyLimit(8*MeV);
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 0.0, 8*MeV, new G4IonFluctuations());
+	mod = new G4BetheBlochModel();
+	mod->SetActivationLowEnergyLimit(10*MeV);
+	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for alphas (100 eV - 8 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 100*eV, 8*MeV);
+	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 10*MeV);
 
 	// ------------------------------------------------------------------------
 	// Generic ions in microelec region
 	// ------------------------------------------------------------------------
 
 	// Deactivate BraggIon model below 10 MeV in microelec region (conflicts with MicroElec)
-	mod = new G4BraggIonModel();
+	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 0.0, 10*MeV, new G4IonFluctuations());
+	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
+	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 0.0, 10*MeV);
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: MicroElec processes constructed successfully" << G4endl;
