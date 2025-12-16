@@ -268,9 +268,8 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Use Goudsmit-Saunderson MSC model between 1 keV and 100 MeV in microelec region
 	G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
-	msc_gs->SetActivationLowEnergyLimit(500*keV);
-	msc_gs->SetActivationHighEnergyLimit(100*MeV);
-	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 500*keV, 100*MeV);
+	msc_gs->SetActivationLowEnergyLimit(1*keV);
+	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 1*keV, 100*MeV);
 
 	// Use WentzelVI MSC model above 100 MeV in microelec region
 	G4WentzelVIModel* msc_wentzel = new G4WentzelVIModel();
@@ -279,16 +278,20 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Activate MicroElec elastic model in microelec region
 	mod = new G4MicroElecElasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.1*eV, 500*keV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.0, 1*keV);
 
-	// Deactivate standard ionisation below 1 keV in microelec region
 	mod = new G4MollerBhabhaModel();
-	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 10*MeV, 10*TeV, new G4UniversalFluctuation());
+	mod->SetActivationLowEnergyLimit(1*keV);
+	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 1*keV, 10*TeV, new G4UniversalFluctuation());
 
 	// Activate MicroElec inelastic model in microelec region
 	mod = new G4MicroElecInelasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.1*eV, 10*MeV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.0, 1*keV);
+
+	// Activate MicroElec LO phonon scattering model in microelec region
+	mod = new G4MicroElecLOPhononModel();
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecLOPhonon", mod, "microelec", 0.0, 10*MeV);
+
 	// ------------------------------------------------------------------------
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
