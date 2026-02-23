@@ -94,6 +94,13 @@ void TsTrackInformation::AddCreatorProcess(G4VProcess* process) {
 }
 
 
+void TsTrackInformation::AddInteractionProcess(const G4VProcess* process) {
+	//if (process)
+	//	G4cout << "Storing interaction process: " << process->GetProcessName() << G4endl;
+	fInteractionProcesses.push_back(process);
+}
+
+
 void TsTrackInformation::AddParentTrack(const G4Track* parentTrack) {
 	//G4cout << "Storing ancestor track: " << parentTrack << G4endl;
 	fParentTracks.push_back(parentTrack);
@@ -171,6 +178,11 @@ std::vector<G4VPhysicalVolume*> TsTrackInformation::GetAncestorInteractionVolume
 
 std::vector<G4VProcess*> TsTrackInformation::GetCreatorProcesses() {
 	return fCreatorProcesses;
+}
+
+
+std::vector<const G4VProcess*> TsTrackInformation::GetInteractionProcesses() {
+	return fInteractionProcesses;
 }
 
 

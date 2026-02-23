@@ -104,6 +104,7 @@ void TsSteppingAction::UserSteppingAction(const G4Step* aStep)
 			}
 
 			trackInformation->IncrementInteractionCount();
+			trackInformation->AddInteractionProcess(aStep->GetPostStepPoint()->GetProcessDefinedStep());
 
 			if (fIsNewInteractionVolume)
 				trackInformation->AddInteractionVolume(aStep->GetPostStepPoint()->GetTouchable()->GetVolume());

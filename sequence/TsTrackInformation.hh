@@ -70,6 +70,8 @@ class TsTrackInformation : public G4VUserTrackInformation
 	std::vector<G4VPhysicalVolume*> GetInteractionVolumes();
 	std::vector<G4VPhysicalVolume*> GetAncestorInteractionVolumes();
 	std::vector<G4VProcess*> GetCreatorProcesses();
+	void AddInteractionProcess(const G4VProcess* process);
+	std::vector<const G4VProcess*> GetInteractionProcesses();
 	std::vector<const G4Track*> GetParentTracks();
 	std::vector<G4int> GetParentTrackIDs();
 	std::vector<G4ThreeVector> GetParentTrackVertexPositions();
@@ -87,6 +89,7 @@ class TsTrackInformation : public G4VUserTrackInformation
 	std::vector<G4VPhysicalVolume*> fAncestorInteractionVolumes;
 	std::vector<G4VPhysicalVolume*> fInteractionVolumes;
 	std::vector<G4VProcess*> fCreatorProcesses;
+	std::vector<const G4VProcess*> fInteractionProcesses;
 	std::vector<const G4Track*> fParentTracks;
 	std::vector<G4int> fParentTrackIDs;
 	std::vector<G4ThreeVector> fParentTrackVertexPositions;

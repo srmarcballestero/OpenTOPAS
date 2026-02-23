@@ -53,6 +53,8 @@
 #include "TsFilterByIncidentParticleMomentum.hh"
 #include "TsFilterByIncidentParticleType.hh"
 #include "TsFilterByCreatorProcess.hh"
+#include "TsFilterByInteractionProcess.hh"
+#include "TsFilterByInteractionOrCreatorProcess.hh"
 #include "TsFilterByType.hh"
 #include "TsFilterByOrigin.hh"
 #include "TsFilterByInteractedOrTraversed.hh"
@@ -528,6 +530,26 @@ TsVFilter* TsFilterHub::InstantiateFilter(TsParameterManager* pM, TsExtensionMan
 	pM->RegisterFilterName(filterName);
 	if (HaveFilterNamed(pM, generator, scorer, filterName))
 		parentFilter = new TsFilterByWeight(filterName, pM, mM, gM, fM, generator, scorer, parentFilter, true, 3);
+
+	// Interaction Process Filter
+	filterName = "OnlyIncludeParticlesUndergoingInteractionProcess";
+	pM->RegisterFilterName(filterName);
+	if (HaveFilterNamed(pM, generator, scorer, filterName))
+		parentFilter = new TsFilterByInteractionProcess(filterName, pM, mM, gM, fM, generator, scorer, parentFilter, false);
+	filterName = "OnlyIncludeParticlesNotUndergoingInteractionProcess";
+	pM->RegisterFilterName(filterName);
+	if (HaveFilterNamed(pM, generator, scorer, filterName))
+		parentFilter = new TsFilterByInteractionProcess(filterName, pM, mM, gM, fM, generator, scorer, parentFilter, true);
+
+	// Interaction or Creator Process Filter
+	filterName = "OnlyIncludeParticlesUndergoingOrCreatedByInteractionProcess";
+	pM->RegisterFilterName(filterName);
+	if (HaveFilterNamed(pM, generator, scorer, filterName))
+		parentFilter = new TsFilterByInteractionOrCreatorProcess(filterName, pM, mM, gM, fM, generator, scorer, parentFilter, false);
+	filterName = "OnlyIncludeParticlesNotUndergoingOrCreatedByInteractionProcess";
+	pM->RegisterFilterName(filterName);
+	if (HaveFilterNamed(pM, generator, scorer, filterName))
+		parentFilter = new TsFilterByInteractionOrCreatorProcess(filterName, pM, mM, gM, fM, generator, scorer, parentFilter, true);
 
 	// Traversed filter
 	filterName = "OnlyIncludeIfParticleTraversedVolume";
