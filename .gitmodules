@@ -1,3 +1,4 @@
 [submodule "external/geant4"]
 	path = external/geant4
 	url = ssh://git@github.com/srmarcballestero/geant4.git
+	branch = patch/opentopas_microelec
