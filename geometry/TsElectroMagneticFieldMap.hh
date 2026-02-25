@@ -44,7 +44,7 @@ public:
 					   TsVGeometryComponent* component);
 	~TsElectroMagneticFieldMap();
 
-	void GetFieldValue(const double p[3], double* Field) const;
+	void GetFieldValue(const double p[4], double* Field) const;
 	void ResolveParameters();
 
 protected:

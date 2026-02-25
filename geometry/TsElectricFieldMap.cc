@@ -588,14 +588,32 @@ void TsElectricFieldMap::GetFieldValue(const G4double Point[3], G4double* Field)
 	G4double FieldY;
 	G4double FieldZ;
 
-    if (localPoint.x() >= fMinX && localPoint.x() <= fMaxX &&
-        localPoint.y() >= fMinY && localPoint.y() <= fMaxY &&
-        localPoint.z() >= fMinZ && localPoint.z() <= fMaxZ) {
+    // Add small epsilon to avoid numerical issues at exact boundaries
+    const G4double epsilon = 1.0e-9 * mm;
+
+    if (localPoint.x() >= (fMinX - epsilon) && localPoint.x() <= (fMaxX + epsilon) &&
+        localPoint.y() >= (fMinY - epsilon) && localPoint.y() <= (fMaxY + epsilon) &&
+        localPoint.z() >= (fMinZ - epsilon) && localPoint.z() <= (fMaxZ + epsilon)) {
+
+        // Handle single-point grids (avoid division by zero)
+        if (fNX == 1 && fNY == 1 && fNZ == 1) {
+            // Single point field - return that value directly
+            G4ThreeVector E_local = G4ThreeVector(fFieldX[0][0][0], fFieldY[0][0][0], fFieldZ[0][0][0]);
+            G4ThreeVector E_global = fAffineTransf.TransformAxis(E_local);
+
+            Field[0] = 0.0;
+            Field[1] = 0.0;
+            Field[2] = 0.0;
+            Field[3] = E_global.x();
+            Field[4] = E_global.y();
+            Field[5] = E_global.z();
+            return;
+        }
 
         // Position of a given point within region, normalized to the range [0,1]
-        G4double xFraction = (localPoint.x() - fMinX) / fDX;
-        G4double yFraction = (localPoint.y() - fMinY) / fDY;
-        G4double zFraction = (localPoint.z() - fMinZ) / fDZ;
+        G4double xFraction = (fDX > 0) ? (localPoint.x() - fMinX) / fDX : 0.0;
+        G4double yFraction = (fDY > 0) ? (localPoint.y() - fMinY) / fDY : 0.0;
+        G4double zFraction = (fDZ > 0) ? (localPoint.z() - fMinZ) / fDZ : 0.0;
 
         if (fInvertX)
             xFraction = 1 - xFraction;
