@@ -1,7 +1,7 @@
 //
 // ********************************************************************
 // *                                                                  *
-// * Copyright 2024 The TOPAS Collaboration                           *
+// * Copyright 2025 The TOPAS Collaboration                           *
 // * Copyright 2022 The TOPAS Collaboration                           *
 // *                                                                  *
 // * Permission is hereby granted, free of charge, to any person      *
@@ -123,9 +123,7 @@ void TsGeometrySampler::Configure() {
 
 void TsGeometrySampler::AddProcess() {
 	G4VSamplerConfigurator *preConf = 0;
-	G4int i = 0;
 	for (G4Configurators::iterator it = fConfigurators.begin(); it != fConfigurators.end(); it++) {
-		i++;
 		G4VSamplerConfigurator *currConf =*it;
 		currConf->Configure(preConf);
 		preConf = *it;

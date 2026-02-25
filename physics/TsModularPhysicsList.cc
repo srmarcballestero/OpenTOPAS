@@ -1,7 +1,7 @@
 //
 // ********************************************************************
 // *                                                                  *
-// * Copyright 2024 The TOPAS Collaboration                           *
+// * Copyright 2025 The TOPAS Collaboration                           *
 // * Copyright 2022 The TOPAS Collaboration                           *
 // *                                                                  *
 // * Permission is hereby granted, free of charge, to any person      *
@@ -56,6 +56,8 @@
 #include "G4DecayPhysics.hh"
 #include "G4EmDNAChemistry.hh"
 #include "G4EmDNAChemistry_option1.hh"
+#include "G4EmDNAChemistry_option2.hh"
+#include "G4EmDNAChemistry_option3.hh"
 #include "G4EmDNAPhysics.hh"
 #include "G4EmDNAPhysicsActivator.hh"
 #include "G4EmDNAPhysics_option1.hh"
@@ -156,6 +158,8 @@ TsModularPhysicsList::TsModularPhysicsList(TsParameterManager* pM, TsExtensionMa
 	fPhysicsTable.insert(std::make_pair("g4em-dna-stationary_opt4", new Creator<G4EmDNAPhysics_stationary_option4>()));
 	fPhysicsTable.insert(std::make_pair("g4em-dna-stationary_opt6", new Creator<G4EmDNAPhysics_stationary_option6>()));
 	fPhysicsTable.insert(std::make_pair("g4em-dna-chemistry_opt1", new Creator<G4EmDNAChemistry_option1>()));
+    fPhysicsTable.insert(std::make_pair("g4em-dna-chemistry_opt2", new Creator<G4EmDNAChemistry_option2>()));
+    fPhysicsTable.insert(std::make_pair("g4em-dna-chemistry_opt3", new Creator<G4EmDNAChemistry_option3>()));
 	fPhysicsTable.insert(std::make_pair("g4em-dna-activator", new Creator<G4EmDNAPhysicsActivator>()));
 	fPhysicsTable.insert(std::make_pair("g4em-standard_GS", new Creator<G4EmStandardPhysicsGS>()));
 	fPhysicsTable.insert(std::make_pair("g4em-standard_SS", new Creator<G4EmStandardPhysicsSS>()));
@@ -205,11 +209,7 @@ TsModularPhysicsList::TsModularPhysicsList(TsParameterManager* pM, TsExtensionMa
 void TsModularPhysicsList::AddModule(const G4String& name)
 {
 	G4String nameLower = name;
-#if GEANT4_VERSION_MAJOR >= 11
 	G4StrUtil::to_lower(nameLower);
-#else
-	nameLower.toLower();
-#endif
 
 	if (nameLower == "transportation_only")
 		fTransportationOnly = true;
@@ -473,20 +473,12 @@ void TsModularPhysicsList::SetCuts()
 	if (numberOfRegions > 0) {
 		for (int i = 0; i < numberOfRegions; i++) {
 			G4String aRegionName = fPm->GetStringParameter((*namesOfCompWithRegion)[i]);
-#if GEANT4_VERSION_MAJOR >= 11
 			G4StrUtil::to_lower(aRegionName);
-#else
-			aRegionName.toLower();
-#endif
 			found = false;
 			// Look for repeated region names
 			for (int j = i + 1; j < numberOfRegions; j++) {
 				G4String tempRegName = (*namesOfCompWithRegion)[j];
-#if GEANT4_VERSION_MAJOR >= 11
 				G4StrUtil::to_lower(tempRegName);
-#else
-				tempRegName.toLower();
-#endif
 				if (aRegionName == tempRegName)
 					found = true;
 			}
@@ -498,11 +490,7 @@ void TsModularPhysicsList::SetCuts()
 				G4ProductionCuts* regionCuts = new G4ProductionCuts();
 
 				G4String parmCut = GetFullParmName("ForRegion") + "/" + aRegionName + "/";
-#if GEANT4_VERSION_MAJOR >= 11
 				G4StrUtil::to_lower(parmCut);
-#else
-				parmCut.toLower();
-#endif
 
 				G4double cutForAllParticles = GetDefaultCutValue();
 				if (fPm->ParameterExists(parmCut + "CutForAllParticles"))
@@ -574,11 +562,7 @@ void TsModularPhysicsList::AddBiasingProcess()
 
 void TsModularPhysicsList::ActiveG4DNAPerRegion(G4String moduleName)
 {
-#if GEANT4_VERSION_MAJOR >= 11
 	G4StrUtil::to_lower(moduleName);
-#else
-	moduleName.toLower();
-#endif
 	if (moduleName.substr(0, 4) != "g4em")
 		return;
 
@@ -603,11 +587,7 @@ void TsModularPhysicsList::ActiveG4DNAPerRegion(G4String moduleName)
 
 void TsModularPhysicsList::ActiveG4EmModelPerRegion(G4String moduleName)
 {
-#if GEANT4_VERSION_MAJOR >= 11
 	G4StrUtil::to_lower(moduleName);
-#else
-	moduleName.toLower();
-#endif
 	if (moduleName.find("em") == std::string::npos ||
 		moduleName.find("chemistry") != std::string::npos) {
 		return;
@@ -623,20 +603,12 @@ void TsModularPhysicsList::ActiveG4EmModelPerRegion(G4String moduleName)
 
 		for (G4int i = 0; i < numberOfRegions; i++) {
 			G4String aRegionName = fPm->GetStringParameter((*namesOfCompWithRegion)[i]);
-#if GEANT4_VERSION_MAJOR >= 11
 			G4StrUtil::to_lower(aRegionName);
-#else
-			aRegionName.toLower();
-#endif
 			found = false;
 
 			for (G4int j = i + 1; j < numberOfRegions; j++) {
 				G4String tempRegName = (*namesOfCompWithRegion)[j];
-#if GEANT4_VERSION_MAJOR >= 11
 				G4StrUtil::to_lower(tempRegName);
-#else
-				tempRegName.toLower();
-#endif
 				if (aRegionName == tempRegName)
 					found = true;
 			}
@@ -649,11 +621,7 @@ void TsModularPhysicsList::ActiveG4EmModelPerRegion(G4String moduleName)
 				if (fPm->ParameterExists(emModel + "ActiveG4EmModelFromModule")) {
 					emModel = fPm->GetStringParameter(emModel + "ActiveG4EmModelFromModule");
 					G4String emModelLower = emModel;
-#if GEANT4_VERSION_MAJOR >= 11
 					G4StrUtil::to_lower(emModelLower);
-#else
-					emModelLower.toLower();
-#endif
 
 					if (emModel.find("dna") == std::string::npos && emModel.find("DNA") == std::string::npos) {
 						// The G4EmModelActivator for non-DNA physics is called within the
@@ -702,11 +670,7 @@ void TsModularPhysicsList::ActiveG4EmModelPerRegion(G4String moduleName)
 								activatorName = fPm->GetStringParameter(GetFullParmName("EmDNAPhysicsActivator"));
 
 							G4String activatorNameLower = activatorName;
-#if GEANT4_VERSION_MAJOR >= 11
 							G4StrUtil::to_lower(activatorNameLower);
-#else
-							activatorNameLower.toLower();
-#endif
 
 							if (activatorNameLower.find("activator") == std::string::npos) {
 								G4cout << G4endl;
@@ -776,7 +740,6 @@ void TsModularPhysicsList::SetEmParameters()
 	if (fPm->ParameterExists(GetFullParmName("EMRangeMax")))
 		G4EmParameters::Instance()->SetMaxEnergy(fPm->GetDoubleParameter(GetFullParmName("EMRangeMax"), "Energy"));
 
-#if GEANT4_VERSION_MAJOR >= 11
 	if (fPm->ParameterExists(GetFullParmName("EMBins")) && !fPm->ParameterExists(GetFullParmName("EMBinsPerDecade")))
 		G4EmParameters::Instance()->SetNumberOfBinsPerDecade(fPm->GetIntegerParameter(GetFullParmName("EMBins")));
 
@@ -789,13 +752,6 @@ void TsModularPhysicsList::SetEmParameters()
 		G4cerr << "Remove either of them and re-run Topas." << G4endl;
 		fPm->AbortSession(1);
 	}
-#else
-	if (fPm->ParameterExists(GetFullParmName("EMBins")))
-		G4EmParameters::Instance()->SetNumberOfBins(fPm->GetIntegerParameter(GetFullParmName("EMBins")));
-
-	if (fPm->ParameterExists(GetFullParmName("EMBinsPerDecade")))
-		G4EmParameters::Instance()->SetNumberOfBinsPerDecade(fPm->GetIntegerParameter(GetFullParmName("EMBinsPerDecade")));
-#endif
 
 	if (fPm->ParameterExists(GetFullParmName("dEdXBins"))) {
 		G4cerr << "Topas is exiting due to a serious error in physics setup." << G4endl;
@@ -848,11 +804,7 @@ void TsModularPhysicsList::SetEmParameters()
 
 	if (fPm->ParameterExists(GetFullParmName("MSCStepLimitType"))) {
 		G4String mscStepLimitType = fPm->GetStringParameter(GetFullParmName("MSCStepLimitType"));
-#if GEANT4_VERSION_MAJOR >= 11
 		G4StrUtil::to_lower(mscStepLimitType);
-#else
-		mscStepLimitType.toLower();
-#endif
 		if (mscStepLimitType == "safety") {
 			G4EmParameters::Instance()->SetMscStepLimitType(fUseSafety);
 		}
@@ -873,11 +825,7 @@ void TsModularPhysicsList::SetEmParameters()
 	if (fPm->ParameterExists(GetFullParmName("SolvatedElectronThermalizationModel"))) {
 		G4String eaqModel = fPm->GetStringParameter(GetFullParmName("SolvatedElectronThermalizationModel"));
 
-#if GEANT4_VERSION_MAJOR >= 11
 		G4StrUtil::to_lower(eaqModel);
-#else
-		eaqModel.toLower();
-#endif
 		if (eaqModel == "ritchie") {
 			G4EmParameters::Instance()->SetDNAeSolvationSubType(fRitchie1994eSolvation);
 		}
@@ -926,11 +874,7 @@ std::map<G4String, VPhysicsCreator*>::const_iterator TsModularPhysicsList::Locat
 	std::map<G4String, VPhysicsCreator*>::const_iterator it;
 
 	G4String nameLower = model;
-#if GEANT4_VERSION_MAJOR >= 11
 	G4StrUtil::to_lower(nameLower);
-#else
-	nameLower.toLower();
-#endif
 
 	it = fPhysicsTable.find(model);
 	if (it != fPhysicsTable.cend())

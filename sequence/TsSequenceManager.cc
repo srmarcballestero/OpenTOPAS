@@ -1,7 +1,7 @@
 //
 // ********************************************************************
 // *                                                                  *
-// * Copyright 2024 The TOPAS Collaboration                           *
+// * Copyright 2025 The TOPAS Collaboration                           *
 // * Copyright 2022 The TOPAS Collaboration                           *
 // *                                                                  *
 // * Permission is hereby granted, free of charge, to any person      *
@@ -60,6 +60,7 @@
 #include "G4Threading.hh"
 #endif
 
+#include "G4String.hh"
 #include "G4Tokenizer.hh"
 #include "G4UIExecutive.hh"
 #include "G4UImanager.hh"
@@ -323,10 +324,12 @@ void TsSequenceManager::Sequence() {
 		// Only advance runID after scorers are initialized, so that runID of -1 indicates not yet running
 		fRunID++;
 
-		// If restoring results from file, skip all of the actual Geant4 run work
+		// If restoring results from file, skip all of the actual Geant4 run work. But calls instantiate 
+		// filter to allow using the mask of Dicom-RT structures 
 		if (fPm->GetBooleanParameter("Ts/RestoreResultsFromFile")) {
 			fTimer[0].Stop();
 			G4cout << "\nRestoring results from file rather than performing simulation run." << G4endl;
+			fScm->InstantiateFilters();
 			fScm->RestoreResultsFromFile();
 			BeamOn(0); // Empty run to avoid segmentation fault
 		} else {
@@ -586,11 +589,7 @@ void TsSequenceManager::ExtraSequence(G4String extraSequenceFileSpec) {
 	for (G4int iToken=0; iToken<length; iToken++) {
 		G4String name = (*names)[iToken];
 		G4String nameLower = name;
-#if GEANT4_VERSION_MAJOR >= 11
 		G4StrUtil::to_lower(nameLower);
-#else
-		nameLower.toLower();
-#endif
 		if (nameLower == "includefile") {
 			G4cerr << "Topas quitting. ExtraSequence file contains IncludeFile." << G4endl;
 			G4cerr << "This is not permitted in an ExtraSequence file." << G4endl;
@@ -600,11 +599,7 @@ void TsSequenceManager::ExtraSequence(G4String extraSequenceFileSpec) {
 		G4String value = (*values)[iToken];
 		G4cout << "ExtraSequence updating parameter: " << name << " to value: " << value << G4endl;
 		fPm->AddParameter(name, value);
-#if GEANT4_VERSION_MAJOR >= 11
 		G4StrUtil::to_lower(name);
-#else
-		name.toLower();
-#endif
 		G4int colonPos = name.find( ":" );
 		UpdateForSpecificParameterChange(name.substr(colonPos+1));
 	}

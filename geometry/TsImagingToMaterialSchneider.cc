@@ -1,7 +1,7 @@
 //
 // ********************************************************************
 // *                                                                  *
-// * Copyright 2024 The TOPAS Collaboration                           *
+// * Copyright 2025 The TOPAS Collaboration                           *
 // * Copyright 2022 The TOPAS Collaboration                           *
 // *                                                                  *
 // * Permission is hereby granted, free of charge, to any person      *
@@ -234,12 +234,6 @@ unsigned short TsImagingToMaterialSchneider::AssignMaterial(std::vector< signed 
 		for (k = 0; k < fNMaterialSections-1 && !found; k++) {
 			if (imagingValue >= fMaterialSections[k] && imagingValue < fMaterialSections[k+1]) {
 				found = true;
-
-				// Count number of elements used in this material
-				G4int nElementsUsed = 0;
-				for (G4int iElem = 0; iElem < fNElements; iElem++)
-					if (fWeights[k][iElem] != 0)
-						nElementsUsed++;
 
 				// Create the element name and weight vectors for this material
 				for (G4int iElem = 0; iElem < fNElements; iElem++)

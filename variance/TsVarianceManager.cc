@@ -1,7 +1,7 @@
 //
 // ********************************************************************
 // *                                                                  *
-// * Copyright 2024 The TOPAS Collaboration                           *
+// * Copyright 2025 The TOPAS Collaboration                           *
 // * Copyright 2022 The TOPAS Collaboration                           *
 // *                                                                  *
 // * Permission is hereby granted, free of charge, to any person      *
@@ -45,6 +45,7 @@
 #include "TsInelasticSplitManager.hh"
 #include "TsAutomaticImportanceSamplingManager.hh"
 #include "TsAutomaticImportanceSamplingParallelManager.hh"
+#include "TsPeriodicBoundaryConditionManager.hh"
 #include "TsVBiasingProcess.hh"
 
 #include "G4UnitsTable.hh"
@@ -79,22 +80,14 @@ void TsVarianceManager::Configure() {
 		for ( int i = 0; i < numberOfBiasingProcesses; i++ ) {
 			G4String aBiasingProcessName = (*biasingProcessNames)[i];
 			G4String type = fPm->GetStringParameter(aBiasingProcessName);
-#if GEANT4_VERSION_MAJOR >= 11
 			G4StrUtil::to_lower(type);
-#else
-			type.toLower();
-#endif
 			aBiasingProcessName = aBiasingProcessName.substr(0, aBiasingProcessName.length()-suffix.length()-1);
 			aBiasingProcessName = aBiasingProcessName.substr(prefix.length()+1);
 			
 			found = false;
 			for ( int j = i + 1; j < numberOfBiasingProcesses; j++ ) {
 				G4String tempName = (*biasingProcessNames)[j];
-#if GEANT4_VERSION_MAJOR >= 11
 				G4StrUtil::to_lower(tempName);
-#else
-				tempName.toLower();
-#endif
 				if ( (*biasingProcessNames)[i] == tempName )
 					found = true;
 			}
@@ -135,7 +128,9 @@ void TsVarianceManager::Configure() {
 					fBiasingProcesses.push_back(new TsAutomaticImportanceSamplingManager(aBiasingProcessName, fPm, fGm));
 				} else if ( type == "automaticimportancesamplingparallel") {
 					fBiasingProcesses.push_back(new TsAutomaticImportanceSamplingParallelManager(aBiasingProcessName, fPm, fGm));
-				}
+                } else if ( type == "periodicboundarycondition") {
+                    fBiasingProcesses.push_back(new TsPeriodicBoundaryConditionManager(aBiasingProcessName, fPm, fGm));
+                }
 				else {
 					G4cerr << "Error, biasing technique " << type << " not found" << G4endl;
 					fPm->AbortSession(1);
@@ -176,19 +171,11 @@ void TsVarianceManager::UpdateForNewRun(G4bool) {
 
 
 G4bool TsVarianceManager::BiasingProcessExists(G4String type, G4int& index) {
-#if GEANT4_VERSION_MAJOR >= 11
 	G4StrUtil::to_lower(type);
-#else
-	type.toLower();
-#endif
 	G4int ind = 0;
 	for ( auto biasingProcess : fBiasingProcesses ) {
 		G4String aName = biasingProcess->GetTypeName();
-#if GEANT4_VERSION_MAJOR >= 11
 		G4StrUtil::to_lower(aName);
-#else
-		aName.toLower();
-#endif
 		if ( aName == type ) {
 			index = ind;
 			return true;
