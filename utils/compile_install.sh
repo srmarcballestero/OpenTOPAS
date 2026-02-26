@@ -63,7 +63,7 @@ build_topas() {
     rm -rf "$TOPAS_SRC_DIR/installs/$BUILD_NAME"/*
 
     pushd "$TOPAS_SRC_DIR/builds/$BUILD_NAME" > /dev/null
-    cmake $TOPAS_SRC_DIR -DCMAKE_INSTALL_PREFIX="$TOPAS_SRC_DIR/installs/$BUILD_NAME" $EXTENSIONS_FLAG
+    cmake $TOPAS_SRC_DIR -DCMAKE_INSTALL_PREFIX="$TOPAS_SRC_DIR/installs/$BUILD_NAME" $EXTENSIONS_FLAG -DTOPAS_USE_QT="$NO_GRAPHICS"
     make -j"$NUM_JOBS" install
     popd > /dev/null
 
