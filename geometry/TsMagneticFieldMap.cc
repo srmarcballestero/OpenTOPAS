@@ -567,7 +567,12 @@ void TsMagneticFieldMap::GetFieldValue(const G4double Point[3], G4double* Field)
 	G4double FieldY;
 	G4double FieldZ;
 
-	if ( localPoint.x() >= fMinX && localPoint.x() <= fMaxX && localPoint.y() >= fMinY && localPoint.y() <=fMaxY && localPoint.z() >=fMinZ && localPoint.z() <= fMaxZ ) {
+	// Add small epsilon to avoid numerical issues at exact boundaries
+	const G4double epsilon = 1.0e-9 * mm; // FIXME: this value is arbitrary and needs to be adjusted
+
+	if ( localPoint.x() >= (fMinX - epsilon) && localPoint.x() <= (fMaxX + epsilon) &&
+	     localPoint.y() >= (fMinY - epsilon) && localPoint.y() <= (fMaxY + epsilon) &&
+	     localPoint.z() >= (fMinZ - epsilon) && localPoint.z() <= (fMaxZ + epsilon) ) {
 		// Position of given point within region, normalized to the range [0,1]
 		G4double xFraction = (localPoint.x() - fMinX)/fDX;
 		G4double yFraction = (localPoint.y() - fMinY)/fDY;

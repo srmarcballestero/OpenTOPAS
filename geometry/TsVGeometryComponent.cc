@@ -48,6 +48,7 @@
 #include "TsMagneticFieldMap.hh"
 #include "TsVElectroMagneticField.hh"
 #include "TsElectroMagneticFieldUniform.hh"
+#include "TsElectroMagneticFieldMap.hh"
 #include "TsElectricFieldMap.hh"
 #include "G4LogicalSkinSurface.hh"
 #include "G4OpticalSurface.hh"
@@ -419,7 +420,10 @@ void TsVGeometryComponent::InstantiateFields() {
 					electroMagneticField = new TsElectroMagneticFieldUniform(fPm, fGm, this);
 				} else if ( fieldType == "electricfieldmap") {
 					electroMagneticField = new TsElectricFieldMap(fPm, fGm, this);
-				} else if (fieldType != "none") {
+				} else if ( fieldType == "electromagneticfieldmap") {
+					electroMagneticField = new TsElectroMagneticFieldMap(fPm, fGm, this);
+				}
+				else if (fieldType != "none") {
 					G4cerr << "Topas is exiting due to a serious error." << G4endl;
 					G4cerr << "Component: " << GetName() << " has unknown Field value: " << fieldType << G4endl;
 					fPm->AbortSession(1);
