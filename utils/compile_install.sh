@@ -28,7 +28,9 @@ Options:
   --extensions-dir             Use TOPAS extensions directory
   --build-name <name>          Specify build/install directory name (default: build)
   --geant4-install-dir <dir>   Specify Geant4 install directory
+  --gdcm-install-dir <dir>     Specify GDCM install directory (default: $GDCM_DIR)
   --no-graphics                Disable Geant4 graphics
+  --use-qt6                    Use Qt6 instead of Qt5
   --rebuild-geant4             Force rebuild of Geant4
 EOF
 }
@@ -44,8 +46,9 @@ build_geant4() {
         -DGEANT4_INSTALL_DATA=ON \
         -DGEANT4_BUILD_MULTITHREADED=ON \
         -DCMAKE_INSTALL_PREFIX="$GEANT4_INSTALL_DIR" \
-        -DCMAKE_PREFIX_PATH="/usr/lib/qt5" \
+        -DCMAKE_PREFIX_PATH="$QT_LIB_PATH" \
         -DGEANT4_USE_QT="$NO_GRAPHICS" \
+        -DGEANT4_USE_QT_QT6="$QT6_FLAG" \
         -DGEANT4_USE_OPENGL_X11="$NO_GRAPHICS" \
         -DGEANT4_USE_RAYTRACER_X11="$NO_GRAPHICS"
 
@@ -63,7 +66,11 @@ build_topas() {
     rm -rf "$TOPAS_SRC_DIR/installs/$BUILD_NAME"/*
 
     pushd "$TOPAS_SRC_DIR/builds/$BUILD_NAME" > /dev/null
-    cmake $TOPAS_SRC_DIR -DCMAKE_INSTALL_PREFIX="$TOPAS_SRC_DIR/installs/$BUILD_NAME" $EXTENSIONS_FLAG -DTOPAS_USE_QT="$NO_GRAPHICS"
+    cmake ../.. \
+        -DCMAKE_INSTALL_PREFIX="../../installs/$BUILD_NAME" \
+        $EXTENSIONS_FLAG \
+        -DTOPAS_USE_QT="$NO_GRAPHICS" \
+        -DTOPAS_USE_QT6="$QT6_FLAG"
     make -j"$NUM_JOBS" install
     popd > /dev/null
 
@@ -121,12 +128,21 @@ while [[ $# -gt 0 ]]; do
             GEANT4_INSTALL_DIR="$2"
             shift 2
             ;;
+        --gdcm-install-dir)
+            GDCM_DIR="$2"
+            shift 2
+            ;;
         --no-graphics)
             NO_GRAPHICS="OFF"
             shift
             ;;
         --rebuild-geant4)
             REBUILD_GEANT4=true
+            shift
+            ;;
+        --use-qt6)
+            QT6_FLAG="ON"
+            QT_LIB_PATH="/usr/lib/qt6"
             shift
             ;;
         -h|--help)
@@ -173,8 +189,9 @@ if [ -z "$GEANT4_DIR" ]; then
 fi
 
 export Geant4_DIR="$(realpath "$GEANT4_INSTALL_DIR")"
-export GDCM_DIR="$GDCM_DIR"
+export GDCM_DIR="$(realpath "$GDCM_DIR")"
 echo "Using Geant4 from: $Geant4_DIR"
+echo "Using GDCM from: $GDCM_DIR"
 
 # Build TOPAS
 build_topas
