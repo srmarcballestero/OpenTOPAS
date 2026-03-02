@@ -5,10 +5,12 @@ IFS=$'\n\t'
 # ----------------------------
 # User-configurable variables
 # ----------------------------
-TOPAS_SRC_DIR="$HOME/Projects/OpenTOPAS"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TOPAS_SRC_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_NAME="build"
 EXTENSIONS_FLAG=""
 NO_GRAPHICS="ON"
+QT6_FLAG="OFF"
 REBUILD_GEANT4=false
 NUM_JOBS=20
 
@@ -16,6 +18,18 @@ NUM_JOBS=20
 GEANT4_SRC_DIR="$TOPAS_SRC_DIR/external/geant4"
 
 GDCM_DIR="$HOME/Software/GDCM/gdcm-install"
+
+abs_path() {
+    local path="$1"
+    if [ -z "$path" ]; then
+        return 1
+    fi
+    if [[ "$path" = /* ]]; then
+        printf '%s\n' "$path"
+    else
+        printf '%s\n' "$(realpath -m "$PWD/$path")"
+    fi
+}
 
 # ----------------------------
 # Functions
@@ -66,8 +80,8 @@ build_topas() {
     rm -rf "$TOPAS_SRC_DIR/installs/$BUILD_NAME"/*
 
     pushd "$TOPAS_SRC_DIR/builds/$BUILD_NAME" > /dev/null
-    cmake ../.. \
-        -DCMAKE_INSTALL_PREFIX="../../installs/$BUILD_NAME" \
+    cmake "$TOPAS_SRC_DIR" \
+        -DCMAKE_INSTALL_PREFIX="$TOPAS_SRC_DIR/installs/$BUILD_NAME" \
         $EXTENSIONS_FLAG \
         -DTOPAS_USE_QT="$NO_GRAPHICS" \
         -DTOPAS_USE_QT6="$QT6_FLAG"
@@ -83,13 +97,13 @@ create_setup_scripts() {
     # Setup environment script
     cat <<EOL > "$install_dir/setup_env.sh"
 #!/bin/bash
-TOPAS_DIR="$install_dir"
+TOPAS_DIR="$(realpath "$install_dir")"
 
-export TOPAS_G4_DATA_DIR="$GEANT4_INSTALL_DIR/share/Geant4/data"
-if [ -d "$GEANT4_INSTALL_DIR/lib64" ]; then
-    export LD_LIBRARY_PATH="$GEANT4_INSTALL_DIR/lib64:\$LD_LIBRARY_PATH"
+export TOPAS_G4_DATA_DIR="$(realpath "$GEANT4_INSTALL_DIR")/share/Geant4/data"
+if [ -d "$(realpath "$GEANT4_INSTALL_DIR")/lib64" ]; then
+    export LD_LIBRARY_PATH="$(realpath "$GEANT4_INSTALL_DIR")/lib64:\$LD_LIBRARY_PATH"
 else
-    export LD_LIBRARY_PATH="$GEANT4_INSTALL_DIR/lib:\$LD_LIBRARY_PATH"
+    export LD_LIBRARY_PATH="$(realpath "$GEANT4_INSTALL_DIR")/lib:\$LD_LIBRARY_PATH"
 fi
 
 export QT_QPA_PLATFORM_PLUGIN_PATH="\$TOPAS_DIR/Frameworks"
@@ -100,7 +114,7 @@ EOL
     # Run TOPAS script
     cat <<EOL > "$install_dir/run_topas.sh"
 #!/bin/bash
-TOPAS_DIR="$install_dir"
+TOPAS_DIR="$(realpath "$install_dir")"
 source \$TOPAS_DIR/setup_env.sh
 \$TOPAS_DIR/bin/topas \$@
 EOL
@@ -157,6 +171,17 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+TOPAS_SRC_DIR="$(abs_path "$TOPAS_SRC_DIR")"
+GEANT4_SRC_DIR="$(abs_path "$GEANT4_SRC_DIR")"
+GDCM_DIR="$(abs_path "$GDCM_DIR")"
+if [ -n "${GEANT4_INSTALL_DIR:-}" ]; then
+    GEANT4_INSTALL_DIR="$(abs_path "$GEANT4_INSTALL_DIR")"
+fi
+
+if [ -n "$EXTENSIONS_FLAG" ]; then
+    EXTENSIONS_FLAG="-DTOPAS_EXTENSIONS_DIR=$TOPAS_SRC_DIR/extensions/"
+fi
+
 # ----------------------------
 # Main Execution
 # ----------------------------
@@ -188,8 +213,8 @@ if [ -z "$GEANT4_DIR" ]; then
     exit 1
 fi
 
-export Geant4_DIR="$(realpath "$GEANT4_INSTALL_DIR")"
-export GDCM_DIR="$(realpath "$GDCM_DIR")"
+export Geant4_DIR="$(abs_path "$GEANT4_INSTALL_DIR")"
+export GDCM_DIR="$(abs_path "$GDCM_DIR")"
 echo "Using Geant4 from: $Geant4_DIR"
 echo "Using GDCM from: $GDCM_DIR"
 
