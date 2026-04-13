@@ -309,6 +309,10 @@ void TsVGenerator::SetEnergy(TsPrimaryParticle &p) const
 				G4double b = fSpectrumWeights[j] / fSpectrumSlopes[j];
 				G4double c = 2 * (aRandom - fSpectrumWeightSums[j]) / fSpectrumSlopes[j];
 				G4double delta = b * b + c;
+				if (delta < 0.) {
+					G4cerr << "Spectrum interpolation produced negative delta for source " << fSourceName << G4endl;
+					fPm->AbortSession(1);
+				}
 
 				G4int sign = 1;
 				if (fSpectrumSlopes[j] < 0.) sign = -1;
@@ -388,7 +392,12 @@ void TsVGenerator::GenerateOnePrimary(G4Event*, TsPrimaryParticle p)
 	if (p.particleDefinition) {
 		G4double mass = p.particleDefinition->GetPDGMass();
 		G4double energy = p.kEnergy + mass;
-		G4double pmom = sqrt(energy*energy-mass*mass);
+		G4double arg = energy*energy - mass*mass;
+		if (arg < 0.) {
+			G4cerr << "Invalid kinetic energy; energy^2 - mass^2 < 0 for source " << fSourceName << G4endl;
+			fPm->AbortSession(1);
+		}
+		G4double pmom = sqrt(arg);
 		G4double px = pmom * p.dCos1;
 		G4double py = pmom * p.dCos2;
 		G4double pz = pmom * p.dCos3;
@@ -401,20 +410,29 @@ void TsVGenerator::GenerateOnePrimary(G4Event*, TsPrimaryParticle p)
 
 		if ( p.isOpticalPhoton ) {
 			if ( fSetRandomPolarization ) {
-				G4double tanTheta = sqrt(p.dCos1*p.dCos1 + p.dCos2*p.dCos2)/p.dCos3;
-				G4double polX = p.dCos1/tanTheta;
-				G4double polY = p.dCos2/tanTheta;
-				G4double polZ = -tanTheta;
-				G4ThreeVector polarization(polX, polY, polZ);
-				G4ThreeVector orthogonalVector = G4ThreeVector(p.dCos1,p.dCos2,p.dCos3).cross(polarization);
-				G4double phi = CLHEP::twopi*G4UniformRand();
-				G4double sinPhi = sin(phi);
-				G4double cosPhi = cos(phi);
-				polarization = cosPhi * polarization + sinPhi * orthogonalVector;
-				polarization = polarization.unit();
-				fPolX = polarization.x();
-				fPolY = polarization.y();
-				fPolY = polarization.z();
+				G4double tanTheta = 0.0;
+				if (p.dCos3 != 0.0)
+					tanTheta = sqrt(p.dCos1*p.dCos1 + p.dCos2*p.dCos2)/p.dCos3;
+
+				if (tanTheta == 0.0) {
+					fPolX = 1.0;
+					fPolY = 0.0;
+					fPolZ = 0.0;
+				} else {
+					G4double polX = p.dCos1/tanTheta;
+					G4double polY = p.dCos2/tanTheta;
+					G4double polZ = -tanTheta;
+					G4ThreeVector polarization(polX, polY, polZ);
+					G4ThreeVector orthogonalVector = G4ThreeVector(p.dCos1,p.dCos2,p.dCos3).cross(polarization);
+					G4double phi = CLHEP::twopi*G4UniformRand();
+					G4double sinPhi = sin(phi);
+					G4double cosPhi = cos(phi);
+					polarization = cosPhi * polarization + sinPhi * orthogonalVector;
+					polarization = polarization.unit();
+					fPolX = polarization.x();
+					fPolY = polarization.y();
+					fPolY = polarization.z();
+				}
 			}
 			
 			particle->SetPolarization(fPolX, fPolY, fPolZ);

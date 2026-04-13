@@ -284,10 +284,18 @@ void TsGeneratorBeam::SetDirection(TsPrimaryParticle &p) const
 
 G4float TsGeneratorBeam::AngleToMarsagliaCoordinate(G4float angle) const
 {
+	const G4float angleEps = 1e-6f * deg;
+	if (fabs(angle - 90.f * deg) < angleEps) {
+		if (angle < 90.f * deg)
+			angle = 90.f * deg - angleEps;
+		else
+			angle = 90.f * deg + angleEps;
+	}
+
 	G4float y = tan(angle);
 	y = y*y;
 	if (angle <= 90.*deg)
-		return sqrt((y/(y+1) - 1./sqrt(y+1) + 1./(y+1)) / 2.);
+		return sqrt(std::max<G4float>(0.f, (y/(y+1) - 1./sqrt(y+1) + 1./(y+1)) / 2.));
 	else
-		return sqrt((y/(y+1) + 1./sqrt(y+1) + 1./(y+1)) / 2.);
+		return sqrt(std::max<G4float>(0.f, (y/(y+1) + 1./sqrt(y+1) + 1./(y+1)) / 2.));
 }

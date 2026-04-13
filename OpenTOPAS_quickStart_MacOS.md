@@ -1,7 +1,7 @@
 # QuickStart Guide for OpenTOPAS: TOol for PArticle Simulation
 This file details the steps to be followed by <ins>Mac users</ins> in order to install OpenTOPAS and launch your first simulation. 
 
-These instructions target **v4.2.2** built against Geant4 **v11.3.2**.
+These instructions target **v4.2.3** built against Geant4 **v11.3.2**.
 
 > [!WARNING]
 > We recommend macOS version 14.0 (Sonoma) or higher. Furthermore following these instructions are solely responsability of the end user. 
@@ -24,8 +24,9 @@ Install [Homebrew](https://brew.sh/). Access the Homebrew website given in Step 
 
 Follow the instructions posted to your terminal at the end of the Homebrew installation; e.g., enter the following commands:
 
-        (echo; echo 'eval "$(/opt/homebrew/bin/brew shellenv)"') >> $HOME/.zprofile
-        eval "$(/opt/homebrew/bin/brew shellenv)"
+        echo >> $HOME/.zprofile
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv zsh)"' >> $HOME/.zprofile
+        eval "$(/opt/homebrew/bin/brew shellenv zsh)"
 
 ## Step 3
 Once Homebrew is installed, you will have access to the command `brew install`. Use this command to install `qt`, `git`, `wget`, and `cmake` by entering the following commands into your terminal:
@@ -108,11 +109,6 @@ Build Geant4. Take note of the following warnings before running the commands sh
 > Using the most recent versions of CMake might trigger undesireable warnings or errors. If this occurs we **recommend downgrading to 3.24.3 or 3.28.1**, which have been confirmed to work.
 
 > [!WARNING]
-> Verify that `qt@5` is not linked or installed in your system. The following command should yield no output if `qt@5` is indeed **NOT** installed on your system. See the warning at the top of the document about `qt@5` compatibility.
-
-        brew list --versions qt@5
-
-> [!WARNING]
 > Depending on your MacOS version you may or may not have XQuartz installed on your system. This can be tested with the following command which should yield no output if it is **NOT** installed. If this is the case please head to the official [Xquartz](https://www.xquartz.org) website to download the application.
 
         which xquartz
@@ -136,7 +132,8 @@ Replace the path supplied to `DCMAKE_PREFIX_PATH` in step 6.2 with the output of
                                 -DGEANT4_BUILD_VERBOSE_CODE=OFF \
                                 -DCMAKE_INSTALL_PREFIX=../geant4-install \
                                 -DCMAKE_PREFIX_PATH=/opt/homebrew/Cellar/qt/6.9.3 \
-                                -DGEANT4_USE_QT=ON -DGEANT4_USE_OPENGL=ON \
+                                -DGEANT4_USE_QT=ON -DGEANT4_USE_QT_QT6=ON -DGEANT4_USE_OPENGL=ON \
+                                -DGEANT4_USE_SYSTEM_ZLIB=ON
                                 -DCMAKE_OSX_ARCHITECTURES=arm64
         make -j20 install
 
@@ -154,8 +151,6 @@ Downloading and installing OpenTOPAS and GDCM.
         mkdir -p /Applications/TOPAS
         cd /Applications/TOPAS
         git clone https://github.com/OpenTOPAS/OpenTOPAS.git
-        cd OpenTOPAS
-        git checkout v4.2.2
 
 7.2. Next, check if the /Applications/GDCM already exists (GDCM is already installed). If so, rename the directory to GDCM-OLD (or another name) using the following command. 
 
@@ -185,9 +180,11 @@ Then use the following commands to move GDCM(<em>gdcm-2.6.8.tar.gz</em>) from th
         cd /Applications/TOPAS
         mkdir OpenTOPAS-{build,install}
         cd OpenTOPAS-build
+        QT_PREFIX=$(brew --prefix qt)
+        export CMAKE_PREFIX_PATH="$QT_PREFIX:$CMAKE_PREFIX_PATH"
         export Geant4_DIR=/Applications/GEANT4/geant4-install \
                GDCM_DIR=/Applications/GDCM/gdcm-install/
-        cmake ../OpenTOPAS -DCMAKE_INSTALL_PREFIX=../OpenTOPAS-install
+        cmake ../OpenTOPAS -DCMAKE_INSTALL_PREFIX=../OpenTOPAS-install -DTOPAS_USE_QT=ON -DTOPAS_USE_QT6=ON -DCMAKE_PREFIX_PATH="$QT_PREFIX"
         make -j20 install
 
 ## Step 8
@@ -256,9 +253,9 @@ The OpenTOPAS tests are located [here](https://github.com/OpenTOPAS/qi-opentopas
         pip3 install nrtest
         pip3 install git+https://github.com/davidchall/nrtest-topas.git
 
-Modify the `apps/topas-v4.2.2.json` metadata file according to your directories and configuration (remember to set your environment variables) and execute the entire test suite as follows:
+Modify the `apps/topas-v4.2.3.json` metadata file according to your directories and configuration (remember to set your environment variables) and execute the entire test suite as follows:
 
-        nrtest execute apps/topas-v4.2.2.json tests/ -o benchmarks/todayDate
+        nrtest execute apps/topas-v4.2.3.json tests/ -o benchmarks/todayDate
 
 Comparisons can also be made with the following command:
         

@@ -1,7 +1,7 @@
 # QuickStart Guide for OpenTOPAS: TOol for PArticle Simulation
 This file details the steps to be followed by <ins>Debian 10, 11 or 12</ins> in order to install OpenTOPAS and launch your first simulation. 
 
-These instructions target **v4.2.2** built against Geant4 **v11.3.2**.
+These instructions target **v4.2.3** built against Geant4 **v11.3.2**.
 
 > [!TIP]
 > The directory path setting proposed in this quickStart guide sets a local installation at the home directory (path defined by `$HOME` environment variable). 
@@ -13,7 +13,7 @@ These instructions target **v4.2.2** built against Geant4 **v11.3.2**.
 > **Steps 1-4 are used to prepare your system for installation of OpenTOPAS**. Run these steps from a "terminal" window when logged in as a user with administrative privileges (a so-called super user or su). 
 
 > [!TIP]
-> Steps 1 to 4 are only needed if you have never installed the necessary libraries, `Cmake`, `git` or `qt5`. Otherwise you can skip these steps.
+> Steps 1 to 4 are only needed if you have never installed the necessary libraries, `Cmake`, `git` or `qt6`. Otherwise you can skip these steps.
 
 ## Step 1
 Install the following libraries (you can copy commands from here and paste them to your terminal):
@@ -45,12 +45,12 @@ Install `git`:
 > This step is only necessary if you want to clone OpenTOPAS source code from the GitHub repository (recommended). See Step 8.1 for more details.
 
 ## Step 4
-Install `qt5`:
+Install `qt6`:
 
         sudo apt install qt6-base-dev qt6-base-dev-tools qt6-tools-dev qt6-tools-dev-tools libqt6opengl6-dev 
 
 > [!WARNING]
-> The visualization of the current version of OpenTOPAS is only compatible with `qt`, not `qt` versions. 
+> The visualization of the current version of OpenTOPAS is only compatible with `qt6`, not `qt5` versions. 
 
 > [!NOTE]
 > Steps 5-7 are used to install Geant4, the Monte Carlo toolkit that provides the radiation transport.
@@ -116,7 +116,7 @@ and decompress them using `tar -zxf`.
 ## Step 7
 Build Geant4.
 
-7.1. Check where qt5 is stored in your system. The commands below assume it is at `/usr/lib/qt5`. In case qt5 is not stored in that directory in your system, replace the directory path after the command `-DCMAKE_PREFIX_PATH=` by the appropriate directory. 
+7.1. Check where qt6 is stored in your system. The commands below assume it is at `/usr/lib/qt6`. In case qt6 is not stored in that directory in your system, replace the directory path after the command `-DCMAKE_PREFIX_PATH=` by the appropriate directory. 
 
 7.2. Run the following commands: 
 
@@ -138,8 +138,6 @@ Downloading and installing OpenTOPAS and GDCM.
         mkdir $HOME/Applications/TOPAS
         cd $HOME/Applications/TOPAS
         git clone https://github.com/OpenTOPAS/OpenTOPAS.git
-        cd OpenTOPAS
-        git checkout v4.2.2
 
 8.1.b Alternatively, you can download OpenTOPAS manually. For a manual download, go to the OpenTOPAS GitHub [website](https://github.com/OpenTOPAS/OpenTOPAS/tree/master), click on the green tab named `<> Code` and `Download ZIP`. Create a directory called `TOPAS` in your `$HOME/Applications` directory, move the compressed folder into this directory, and decompress the file. To follow the following commands, rename the decompressed folder `OpenTOPAS-main` as `OpenTOPAS`. You should have the directory `$HOME/Applications/TOPAS/Open-TOPAS` 
 
@@ -235,9 +233,9 @@ The OpenTOPAS tests are located [here](https://github.com/OpenTOPAS/qi-opentopas
         pip3 install nrtest
         pip3 install git+https://github.com/davidchall/nrtest-topas.git
 
-Modify the `apps/topas-v4.2.2.json` metadata file according to your directories and configuration (remember to set your environment variables) and execute the entire test suite as follows:
+Modify the `apps/topas-v4.2.3.json` metadata file according to your directories and configuration (remember to set your environment variables) and execute the entire test suite as follows:
 
-        nrtest execute apps/topas-v4.2.2.json tests/ -o benchmarks/todayDate
+        nrtest execute apps/topas-v4.2.3.json tests/ -o benchmarks/todayDate
 
 Comparisons can also be made with the following command:
         

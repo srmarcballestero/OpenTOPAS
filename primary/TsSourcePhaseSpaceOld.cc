@@ -482,6 +482,10 @@ G4bool TsSourcePhaseSpaceOld::ReadSomeDataFromFileToBuffer(std::queue<TsPrimaryP
 					p.dCos3 = sqrt(zCosSquared);
 
 				if (cosZIsNegative) p.dCos3 *= -1.;
+				if (p.dCos3 == 0.) {
+					const G4double minCos = 1e-12;
+					p.dCos3 = cosZIsNegative ? -minCos : minCos;
+				}
 
 				// Invert coordinates if requested
 				if (fPhaseSpaceInvertXAxis) {

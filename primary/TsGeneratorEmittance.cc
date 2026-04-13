@@ -33,6 +33,7 @@
 #include "TsParameterManager.hh"
 
 #include "Randomize.hh"
+#include "G4PhysicalConstants.hh"
 
 TsGeneratorEmittance::TsGeneratorEmittance(TsParameterManager* pM, TsGeometryManager* gM, TsGeneratorManager* psM, G4String sourceName) :
 TsVGenerator(pM,gM,psM,sourceName), fTwissX(fSourceName), fTwissY(fSourceName)
@@ -77,6 +78,12 @@ void TsGeneratorEmittance::ResolveParameters(){
 		fSigY      = fPm->GetDoubleParameter(GetFullParmName("SigmaY"), "Length");
 		fSigYprime = fPm->GetUnitlessParameter(GetFullParmName("SigmaYprime"));
 		fRhoY      = fPm->GetUnitlessParameter(GetFullParmName("CorrelationY"));
+
+		if (fRhoX < -1.0 || fRhoX > 1.0 || fRhoY < -1.0 || fRhoY > 1.0) {
+			G4cerr << "Topas is exiting due to a serious error in beam source setup.. " << G4endl;
+			G4cerr << "CorrelationX/Y must be within [-1, 1]: " << fSourceName << G4endl;
+			fPm->AbortSession(1);
+		}
 		}
 		break;
 	case TWISS_kv: //K-V distribution
@@ -266,8 +273,18 @@ void TsGeneratorEmittance::GeneratePrimaries(G4Event *anEvent){
 		}
 	}
 
-	G4double dir_x  = tan(xprime);
-	G4double dir_y  = tan(yprime);
+	const G4double angleEps = 1e-9;
+	auto clampAngle = [angleEps](G4double angle) {
+		if (fabs(fabs(angle) - CLHEP::halfpi) < angleEps) {
+			if (angle < 0.0)
+				return -CLHEP::halfpi + angleEps;
+			return CLHEP::halfpi - angleEps;
+		}
+		return angle;
+	};
+
+	G4double dir_x  = tan(clampAngle(xprime));
+	G4double dir_y  = tan(clampAngle(yprime));
 
 	//convert to directional cosines
 	G4double norm_dir = sqrt(dir_x*dir_x+dir_y*dir_y+1.0); //+1 for z

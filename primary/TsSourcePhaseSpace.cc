@@ -623,6 +623,10 @@ G4bool TsSourcePhaseSpace::ReadOneParticle(std::queue<TsPrimaryParticle>* partic
 			fPrimaryParticle.dCos3 = sqrt(zCosSquared);
 
 		if (cosZIsNegative) fPrimaryParticle.dCos3 *= -1.;
+		if (fPrimaryParticle.dCos3 == 0.) {
+			const G4double minCos = 1e-12;
+			fPrimaryParticle.dCos3 = cosZIsNegative ? -minCos : minCos;
+		}
 
 		// Invert coordinates if requested
 		if (fPhaseSpaceInvertXAxis) {
