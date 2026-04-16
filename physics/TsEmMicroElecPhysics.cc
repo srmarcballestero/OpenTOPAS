@@ -134,7 +134,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Configure EM parameters
 	// ========================================================================
 	G4EmParameters* param = G4EmParameters::Instance();
-	param->SetDefaults();
 	param->SetBuildCSDARange(true);
 	param->SetMscStepLimitType(fUseSafety);
 
@@ -327,7 +326,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Deactivate BraggIon model below 10 MeV in microelec region (conflicts with MicroElec)
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 2*MeV, 10*TeV, new G4IonFluctuations());
+	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, new G4IonFluctuations());
 
 	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
