@@ -181,9 +181,9 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		if (particleName == "e-")
 		{
 			// NOTE: Standard MSC and ionisation are added by g4em-standard_opt4.
-			// In the microelec region, standard models remain active above 1 keV
-			// where they are reliable. MicroElec takes over below 1 keV where
-			// standard EM accuracy degrades significantly.
+			// In the microelec region, standard models remain active above 10 keV
+			// where they are reliable. MicroElec takes over below 10 keV (its
+			// validated data ceiling for electrons) where standard EM degrades.
 			// We add MicroElec-specific processes (active only in microelec region)
 
 			// MicroElec elastic (uses dummy model in World, activated in Target)
@@ -269,32 +269,34 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Electrons in microelec region
 	// ------------------------------------------------------------------------
 
-	// Use Goudsmit-Saunderson MSC model between 1 keV and 100 MeV in microelec region
+	// Use Goudsmit-Saunderson MSC model between 10 keV and 100 MeV in microelec region.
+	// Below 10 keV, MicroElec elastic handles scattering (track-structure regime).
 	G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
-	msc_gs->SetActivationLowEnergyLimit(1*keV);
-	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 1*keV, 100*MeV);
+	msc_gs->SetActivationLowEnergyLimit(10*keV);
+	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 10*keV, 100*MeV);
 
 	// Use WentzelVI MSC model above 100 MeV in microelec region
 	G4WentzelVIModel* msc_wentzel = new G4WentzelVIModel();
 	msc_wentzel->SetActivationLowEnergyLimit(100*MeV);
 	em_config->SetExtraEmModel("e-", "msc", msc_wentzel, "microelec", 100*MeV, 10*TeV);
 
-	// Activate MicroElec elastic model in microelec region
+	// Activate MicroElec elastic model in microelec region (track structure up to 10 keV)
 	mod = new G4MicroElecElasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.0, 1*keV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.0, 10*keV);
 
-	// Penelope ionisation 1-100 keV to match the default (opt4) region
+	// Penelope ionisation 10-100 keV to match the default (opt4) region.
+	// Below 10 keV, MicroElec inelastic handles ionisation (track-structure regime).
 	mod = new G4PenelopeIonisationModel();
-	mod->SetActivationLowEnergyLimit(1*keV);
-	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 1*keV, 100*keV, G4EmStandUtil::ModelOfFluctuations());
+	mod->SetActivationLowEnergyLimit(10*keV);
+	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 10*keV, 100*keV, G4EmStandUtil::ModelOfFluctuations());
 
 	// MollerBhabha above 100 keV, as in the default region
 	mod = new G4MollerBhabhaModel();
 	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 100*keV, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
 
-	// Activate MicroElec inelastic model in microelec region
+	// Activate MicroElec inelastic model in microelec region (up to the 10 keV data ceiling)
 	mod = new G4MicroElecInelasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.0, 1*keV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.0, 10*keV);
 
 	// Activate MicroElec LO phonon scattering model in microelec region
 	mod = new G4MicroElecLOPhononModel();
