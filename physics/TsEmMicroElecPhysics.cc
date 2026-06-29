@@ -136,14 +136,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// ========================================================================
 	G4EmParameters* param = G4EmParameters::Instance();
 	param->SetBuildCSDARange(true);
-	// NOTE: MSC stepping parameters (step-limit type, skin, range factor) are
-	// inherited from the base g4em-standard_opt4 list (fUseSafetyPlus, skin=3,
-	// rangeFactor=0.08). G4EmParameters is a global singleton, so we must not
-	// override them here or we would downgrade MSC accuracy for the whole run.
 
-	// CRITICAL: Tell Geant4 to only initialize MicroElec models for materials
-	// in regions designated as MicroElec regions. This prevents errors when
-	// materials outside the MicroElec database exist in the geometry.
 	param->RegionsMicroElec();
 
 	param->SetMinEnergy(0.1*eV);
@@ -180,11 +173,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		if (particleName == "e-")
 		{
-			// NOTE: Standard MSC and ionisation are added by g4em-standard_opt4.
-			// In the microelec region, standard models remain active above 10 keV
-			// where they are reliable. MicroElec takes over below 10 keV (its
-			// validated data ceiling for electrons) where standard EM degrades.
-			// We add MicroElec-specific processes (active only in microelec region)
 
 			// MicroElec elastic (uses dummy model in World, activated in Target)
 			G4MicroElecElastic* microElecElastic = new G4MicroElecElastic("e-_G4MicroElecElastic");
@@ -212,11 +200,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "proton")
 		{
-			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: MicroElec (100 eV - 2 MeV) replaces Bragg model
-			// to avoid conflicts with MicroElec delta ray production. Standard
-			// Bethe-Bloch model remains active above 2 MeV where it's reliable.
-
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("p_G4MicroElecInelastic");
 			microElecInelastic->SetEmModel(new G4DummyModel(), 1);
@@ -228,10 +211,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "alpha")
 		{
-			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: MicroElec (100 eV - 8 MeV) replaces BraggIon model
-			// to avoid conflicts with MicroElec delta ray production. Standard
-			// Bethe-Bloch model remains active above ~8 MeV (2 MeV/u) where it's reliable.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("alpha_G4MicroElecInelastic");
@@ -244,10 +223,6 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		else if (particleName == "GenericIon")
 		{
-			// NOTE: Standard ionisation is added by g4em-standard_opt4.
-			// In microelec region: MicroElec (100 eV - 10 MeV) replaces BraggIon model
-			// to avoid conflicts with MicroElec delta ray production. Standard high-energy
-			// models (Lindhard-Sorensen) remain active above 10 MeV where they're reliable.
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("ion_G4MicroElecInelastic");
