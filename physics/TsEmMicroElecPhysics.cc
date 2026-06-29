@@ -27,11 +27,27 @@
 // *                                                                  *
 // ********************************************************************
 //
+// MicroElec track-structure physics for the "microelec" region, designed to
+// overlay a standard EM base list (em_opt3 or em_opt4). Above an electron
+// threshold the region reproduces the base list's electron models; below the
+// threshold MicroElec elastic/inelastic take over. Behaviour is selected at
+// run time through TOPAS parameters (see ConstructProcess):
+//
+//   Ph/MicroElec/BaseList          = "opt3" | "opt4"   (default "opt4")
+//   Ph/MicroElec/ElectronThreshold = 1. keV            (default 1 keV)
+//   Ph/MicroElec/UsePenelope       = "True"            (default True, opt4 only)
+//
+// IMPORTANT: this constructor only ADDS MicroElec processes and region model
+// overrides; it does not register the base electron/photon processes. The
+// matching base list MUST also be present in Ph/<list>/Modules, e.g.:
+//   Ph/Default/Modules = 2 "g4em-standard_opt4" "g4em-microelec"
+// and BaseList must match that base list for the substitution to be consistent.
 
 #include "TsEmMicroElecPhysics.hh"
 #include "TsParameterManager.hh"
 
 #include "G4SystemOfUnits.hh"
+#include "G4String.hh"
 #include "G4ParticleDefinition.hh"
 #include "G4ProcessManager.hh"
 #include "G4ProductionCutsTable.hh"
@@ -64,6 +80,7 @@
 #include "G4BraggModel.hh"
 #include "G4BraggIonModel.hh"
 #include "G4BetheBlochModel.hh"
+#include "G4UrbanMscModel.hh"
 #include "G4GoudsmitSaundersonMscModel.hh"
 #include "G4WentzelVIModel.hh"
 #include "G4MollerBhabhaModel.hh"
@@ -130,6 +147,36 @@ void TsEmMicroElecPhysics::ConstructProcess()
 {
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: Constructing MicroElec processes" << G4endl;
+
+	// ========================================================================
+	// Read configuration parameters
+	// ========================================================================
+	G4String baseList = "opt4";
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/BaseList"))
+		baseList = fPm->GetStringParameter("Ph/MicroElec/BaseList");
+	G4StrUtil::to_lower(baseList);
+
+	G4double eThreshold = 1.0 * keV;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/ElectronThreshold"))
+		eThreshold = fPm->GetDoubleParameter("Ph/MicroElec/ElectronThreshold", "Energy");
+
+	G4bool usePenelope = true;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/UsePenelope"))
+		usePenelope = fPm->GetBooleanParameter("Ph/MicroElec/UsePenelope");
+
+	if (baseList != "opt3" && baseList != "opt4")
+	{
+		G4cerr << "TsEmMicroElecPhysics: unknown Ph/MicroElec/BaseList = \"" << baseList
+		       << "\". Allowed values are \"opt3\" and \"opt4\"." << G4endl;
+		if (fPm)
+			fPm->AbortSession(1);
+		baseList = "opt4";
+	}
+
+	if (fVerbose > 0)
+		G4cout << "TsEmMicroElecPhysics: base list = " << baseList
+		       << ", electron threshold = " << eThreshold / keV << " keV"
+		       << ", use Penelope = " << (usePenelope ? "true" : "false") << G4endl;
 
 	// ========================================================================
 	// Configure EM parameters
@@ -240,40 +287,69 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	G4EmConfigurator* em_config = G4LossTableManager::Instance()->EmConfigurator();
 	G4VEmModel* mod;
 
+	// Fixed crossover energies, matching the base lists:
+	//   opt4 msc:  GoudsmitSaunderson <= 100 MeV, WentzelVI above (MscEnergyLimit)
+	//   opt4 ioni: Penelope <= 100 keV, MollerBhabha above
+	const G4double mscHighLimit = 100.0 * MeV;   // GS / WentzelVI crossover (opt4)
+	const G4double peneHighLimit = 100.0 * keV;  // Penelope / MollerBhabha crossover (opt4)
+	const G4double topLimit = 600.0 * MeV;       // upper bound of region overrides
+
 	// ------------------------------------------------------------------------
-	// Electrons in microelec region
+	// Electrons in microelec region: standard models above eThreshold reproduce
+	// the chosen base list; MicroElec track structure below eThreshold.
 	// ------------------------------------------------------------------------
+	if (baseList == "opt3")
+	{
+		// msc: Urban over the whole range (matches em_opt3)
+		G4UrbanMscModel* msc_urban = new G4UrbanMscModel();
+		msc_urban->SetActivationLowEnergyLimit(eThreshold);
+		em_config->SetExtraEmModel("e-", "msc", msc_urban, "microelec", eThreshold, topLimit);
 
-	// Use Goudsmit-Saunderson MSC model between 10 keV and 100 MeV in microelec region.
-	// Below 10 keV, MicroElec elastic handles scattering (track-structure regime).
-	G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
-	msc_gs->SetActivationLowEnergyLimit(10*keV);
-	em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", 10*keV, 100*MeV);
+		// eIoni: MollerBhabha over the whole range (matches em_opt3)
+		mod = new G4MollerBhabhaModel();
+		mod->SetActivationLowEnergyLimit(eThreshold);
+		em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, topLimit, G4EmStandUtil::ModelOfFluctuations());
+	}
+	else // opt4
+	{
+		// msc: GoudsmitSaunderson (<= 100 MeV) + WentzelVI (> 100 MeV) (matches em_opt4)
+		G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
+		msc_gs->SetActivationLowEnergyLimit(eThreshold);
+		em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", eThreshold, mscHighLimit);
 
-	// Use WentzelVI MSC model above 100 MeV in microelec region
-	G4WentzelVIModel* msc_wentzel = new G4WentzelVIModel();
-	msc_wentzel->SetActivationLowEnergyLimit(100*MeV);
-	em_config->SetExtraEmModel("e-", "msc", msc_wentzel, "microelec", 100*MeV, 10*TeV);
+		G4WentzelVIModel* msc_wentzel = new G4WentzelVIModel();
+		msc_wentzel->SetActivationLowEnergyLimit(mscHighLimit);
+		em_config->SetExtraEmModel("e-", "msc", msc_wentzel, "microelec", mscHighLimit, topLimit);
 
-	// Activate MicroElec elastic model in microelec region (track structure up to 10 keV)
+		// eIoni: Penelope (<= 100 keV) + MollerBhabha (> 100 keV) (matches em_opt4).
+		// UsePenelope = false drops Penelope (NOT consistent with em_opt4).
+		if (usePenelope)
+		{
+			mod = new G4PenelopeIonisationModel();
+			mod->SetActivationLowEnergyLimit(eThreshold);
+			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, peneHighLimit, G4EmStandUtil::ModelOfFluctuations());
+
+			mod = new G4MollerBhabhaModel();
+			mod->SetActivationLowEnergyLimit(peneHighLimit);
+			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", peneHighLimit, topLimit, G4EmStandUtil::ModelOfFluctuations());
+		}
+		else
+		{
+			mod = new G4MollerBhabhaModel();
+			mod->SetActivationLowEnergyLimit(eThreshold);
+			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, topLimit, G4EmStandUtil::ModelOfFluctuations());
+		}
+	}
+
+	// MicroElec elastic (track structure below threshold)
 	mod = new G4MicroElecElasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.0, 10*keV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecElastic", mod, "microelec", 0.0, eThreshold);
 
-	// Penelope ionisation 10-100 keV to match the default (opt4) region.
-	// Below 10 keV, MicroElec inelastic handles ionisation (track-structure regime).
-	mod = new G4PenelopeIonisationModel();
-	mod->SetActivationLowEnergyLimit(10*keV);
-	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 10*keV, 100*keV, G4EmStandUtil::ModelOfFluctuations());
-
-	// MollerBhabha above 100 keV, as in the default region
-	mod = new G4MollerBhabhaModel();
-	em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", 100*keV, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
-
-	// Activate MicroElec inelastic model in microelec region (up to the 10 keV data ceiling)
+	// MicroElec inelastic (track structure below threshold)
 	mod = new G4MicroElecInelasticModel_new();
-	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.0, 10*keV);
+	em_config->SetExtraEmModel("e-", "e-_G4MicroElecInelastic", mod, "microelec", 0.0, eThreshold);
 
-	// Activate MicroElec LO phonon scattering model in microelec region
+	// LO phonon (polar dielectrics only)
 	mod = new G4MicroElecLOPhononModel();
 	em_config->SetExtraEmModel("e-", "e-_G4MicroElecLOPhonon", mod, "microelec", 0.0, 10*MeV);
 
@@ -281,12 +357,11 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
 
-	// Deactivate Bragg model below 2 MeV in microelec region (conflicts with MicroElec)
+	// hIoni
 	mod = new G4BetheBlochModel();
 	mod->SetActivationLowEnergyLimit(2*MeV);
 	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 2*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
 
-	// Activate MicroElec inelastic model for protons (100 eV - 2 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
 	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 2*MeV);
@@ -295,28 +370,24 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Alpha particles in microelec region
 	// ------------------------------------------------------------------------
 
-	// Deactivate BraggIon model below 8 MeV in microelec region (conflicts with MicroElec)
+	// ionIoni
 	mod = new G4BetheBlochModel();
-	mod->SetActivationLowEnergyLimit(8*MeV);
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 8*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
+	mod->SetActivationLowEnergyLimit(7.9452*MeV);
+	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 7.9452*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
 
-	// Activate MicroElec inelastic model for alphas (100 eV - 8 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 8*MeV);
+	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 7.9452*MeV);
 
 	// ------------------------------------------------------------------------
 	// Generic ions in microelec region
 	// ------------------------------------------------------------------------
 
-	// Deactivate BraggIon model below 10 MeV in microelec region (conflicts with MicroElec)
-	// Above 10 MeV use Lindhard-Sorensen, matching the GenericIon model set by opt4.
+	// ionIoni
 	mod = new G4LindhardSorensenIonModel();
 	mod->SetActivationLowEnergyLimit(10*MeV);
 	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
 
-	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
-	// Activate MicroElec inelastic model for generic ions (100 eV - 10 MeV)
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
 	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
