@@ -35,6 +35,7 @@
 //
 //   Ph/MicroElec/BaseList          = "opt3" | "opt4"   (default "opt4")
 //   Ph/MicroElec/ElectronThreshold = 1. keV            (default 1 keV)
+//   Ph/MicroElec/ProtonThreshold   = 2. MeV            (default 2 MeV)
 //   Ph/MicroElec/UsePenelope       = "True"            (default True, opt4 only)
 //
 // IMPORTANT: this constructor only ADDS MicroElec processes and region model
@@ -160,6 +161,10 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/ElectronThreshold"))
 		eThreshold = fPm->GetDoubleParameter("Ph/MicroElec/ElectronThreshold", "Energy");
 
+	G4double pThreshold = 2.0 * MeV;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/ProtonThreshold"))
+		pThreshold = fPm->GetDoubleParameter("Ph/MicroElec/ProtonThreshold", "Energy");
+
 	G4bool usePenelope = true;
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/UsePenelope"))
 		usePenelope = fPm->GetBooleanParameter("Ph/MicroElec/UsePenelope");
@@ -176,6 +181,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: base list = " << baseList
 		       << ", electron threshold = " << eThreshold / keV << " keV"
+		       << ", proton threshold = " << pThreshold / MeV << " MeV"
 		       << ", use Penelope = " << (usePenelope ? "true" : "false") << G4endl;
 
 	// ========================================================================
@@ -357,14 +363,31 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
 
-	// hIoni
-	mod = new G4BetheBlochModel();
-	mod->SetActivationLowEnergyLimit(2*MeV);
-	em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", 2*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
+	// hIoni: Bragg (<= 2 MeV) + BetheBloch (> 2 MeV), matching the base lists.
+	// If pThreshold < 2 MeV, Bragg fills the gap between the MicroElec threshold
+	// and the Bragg/BetheBloch crossover.
+	const G4double braggHighLimit = 2.0 * MeV;  // Bragg / BetheBloch crossover (proton)
+
+	if (pThreshold < braggHighLimit)
+	{
+		mod = new G4BraggModel();
+		mod->SetActivationLowEnergyLimit(pThreshold);
+		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, braggHighLimit, G4EmStandUtil::ModelOfFluctuations());
+
+		mod = new G4BetheBlochModel();
+		mod->SetActivationLowEnergyLimit(braggHighLimit);
+		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", braggHighLimit, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
+	}
+	else
+	{
+		mod = new G4BetheBlochModel();
+		mod->SetActivationLowEnergyLimit(pThreshold);
+		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
+	}
 
 	mod = new G4MicroElecInelasticModel_new();
 	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, 2*MeV);
+	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, pThreshold);
 
 	// ------------------------------------------------------------------------
 	// Alpha particles in microelec region
