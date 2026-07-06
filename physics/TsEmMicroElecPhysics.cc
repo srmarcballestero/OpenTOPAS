@@ -38,6 +38,12 @@
 //   Ph/MicroElec/ProtonThreshold   = 2. MeV            (default 2 MeV)
 //   Ph/MicroElec/UsePenelope       = "True"            (default True, opt4 only)
 //
+// Optional surface work-function overrides (paired vectors, same length) let a
+// non-database bulk share its skin's work function so no spurious escape barrier
+// appears at their interface; unlisted materials keep WF = 0 (air/vacuum-like):
+//   sv:Ph/MicroElec/SurfaceWorkFunctionMaterials = 1 "Brass"
+//   dv:Ph/MicroElec/SurfaceWorkFunctionValues    = 1 4.2 eV
+//
 // IMPORTANT: this constructor only ADDS MicroElec processes and region model
 // overrides; it does not register the base electron/photon processes. The
 // matching base list MUST also be present in Ph/<list>/Modules, e.g.:
@@ -54,6 +60,7 @@
 #include "G4ProductionCutsTable.hh"
 #include "G4MaterialCutsCouple.hh"
 #include <fstream>
+#include <vector>
 
 // MicroElec models and processes
 #include "G4MicroElecElastic.hh"
@@ -169,6 +176,32 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/UsePenelope"))
 		usePenelope = fPm->GetBooleanParameter("Ph/MicroElec/UsePenelope");
 
+	// Surface work-function overrides: pair each material name with a WF value.
+	// The surface process treats any material absent from the MicroElec database
+	// as vacuum (WF = 0), which is correct for air/vacuum but wrong at an
+	// interface with a non-database bulk.
+	std::vector<G4String> wfMaterials;
+	std::vector<G4double> wfValues;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/SurfaceWorkFunctionMaterials"))
+	{
+		G4int nWf = fPm->GetVectorLength("Ph/MicroElec/SurfaceWorkFunctionMaterials");
+		if (!fPm->ParameterExists("Ph/MicroElec/SurfaceWorkFunctionValues") ||
+		    fPm->GetVectorLength("Ph/MicroElec/SurfaceWorkFunctionValues") != nWf)
+		{
+			G4cerr << "TsEmMicroElecPhysics: Ph/MicroElec/SurfaceWorkFunctionMaterials and "
+			          "Ph/MicroElec/SurfaceWorkFunctionValues must have the same length." << G4endl;
+			if (fPm)
+				fPm->AbortSession(1);
+		}
+		G4String* mats = fPm->GetStringVector("Ph/MicroElec/SurfaceWorkFunctionMaterials");
+		G4double* vals = fPm->GetDoubleVector("Ph/MicroElec/SurfaceWorkFunctionValues", "Energy");
+		for (G4int i = 0; i < nWf; ++i)
+		{
+			wfMaterials.push_back(mats[i]);
+			wfValues.push_back(vals[i]);
+		}
+	}
+
 	if (baseList != "opt3" && baseList != "opt4")
 	{
 		G4cerr << "TsEmMicroElecPhysics: unknown Ph/MicroElec/BaseList = \"" << baseList
@@ -242,9 +275,14 @@ void TsEmMicroElecPhysics::ConstructProcess()
 			phononScattering->SetEmModel(new G4DummyModel(), 1);
 			pmanager->AddDiscreteProcess(phononScattering);
 
-			// MicroElec surface process (boundary interactions)
+			// MicroElec surface process (work-function barrier at material
+			// interfaces). Apply any user work-function overrides so a
+			// non-database bulk (e.g. Brass under a G4_Cu skin) does not get a
+			// spurious barrier; see Ph/MicroElec/SurfaceWorkFunctionMaterials.
 			G4MicroElecSurface* microElecSurface = new G4MicroElecSurface("e-_G4MicroElecSurface");
 			microElecSurface->SetProcessManager(pmanager);
+			for (size_t i = 0; i < wfMaterials.size(); ++i)
+				microElecSurface->SetWorkFunction(wfMaterials[i], wfValues[i]);
 			pmanager->AddDiscreteProcess(microElecSurface);
 		}
 
