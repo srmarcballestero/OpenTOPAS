@@ -690,15 +690,24 @@ G4LogicalVolume* TsVGeometryComponent::CreateLogicalVolume(G4String& subComponen
 	lVol->SetVisAttributes(visAtt);
 	fVisAtts.push_back(visAtt);
 
-	// If defined, set Max Step Size
-	if (!fIsCopy && fPm->ParameterExists(GetFullParmName(subComponentName, "MaxStepSize"))) {
+	// If defined, set Max Step Size and/or Min Kinetic Energy
+	// force-kills a charged track the moment its KE drops below MinKineticEnergy, before
+	// Transportation ever has to compute a field-curved step for it.
+	bool hasMaxStepSize = !fIsCopy && fPm->ParameterExists(GetFullParmName(subComponentName, "MaxStepSize"));
+	bool hasMinKineticEnergy = !fIsCopy && fPm->ParameterExists(GetFullParmName(subComponentName, "MinKineticEnergy"));
+	if (hasMaxStepSize || hasMinKineticEnergy) {
 		if (fIsParallel) {
 			G4cerr << "Topas is exiting due to a serious error in definition of geometry component: " << GetName() << G4endl;
-			G4cerr << "Components in parallel worlds may not have MaxStepSize." << G4endl;
+			G4cerr << "Components in parallel worlds may not have MaxStepSize or MinKineticEnergy." << G4endl;
 			fPm->AbortSession(1);
 		}
 
-		G4UserLimits* userLimit = new G4UserLimits(fPm->GetDoubleParameter(GetFullParmName(subComponentName, "MaxStepSize"), "Length"));
+		G4double maxStepSize = hasMaxStepSize
+			? fPm->GetDoubleParameter(GetFullParmName(subComponentName, "MaxStepSize"), "Length")
+			: DBL_MAX;
+		G4UserLimits* userLimit = new G4UserLimits(maxStepSize);
+		if (hasMinKineticEnergy)
+			userLimit->SetUserMinEkine(fPm->GetDoubleParameter(GetFullParmName(subComponentName, "MinKineticEnergy"), "Energy"));
 		lVol->SetUserLimits(userLimit);
 		fUserLimits.push_back(userLimit);
 	}
@@ -714,7 +723,7 @@ G4LogicalVolume* TsVGeometryComponent::CreateLogicalVolume(G4String& subComponen
 			G4StrUtil::to_lower(regionName);
 			if (regionName == "defaultregionfortheworld" )
 				regionName = "DefaultRegionForTheWorld";
-			
+
 			G4Region* region = G4RegionStore::GetInstance()->FindOrCreateRegion(regionName);
 			lVol->SetRegion(region);
 			region->AddRootLogicalVolume(lVol);
