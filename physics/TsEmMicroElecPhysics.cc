@@ -28,15 +28,22 @@
 // ********************************************************************
 //
 // MicroElec track-structure physics for the "microelec" region, designed to
-// overlay a standard EM base list (em_opt3 or em_opt4). Above an electron
-// threshold the region reproduces the base list's electron models; below the
-// threshold MicroElec elastic/inelastic take over. Behaviour is selected at
-// run time through TOPAS parameters (see ConstructProcess):
+// overlay a standard EM base list (em_opt3, em_opt4 or the opt4/Livermore
+// variant). Above an electron threshold the region reproduces the base list's
+// electron models; below the threshold MicroElec elastic/inelastic take over.
+// Behaviour is selected at run time through TOPAS parameters (see
+// ConstructProcess):
 //
-//   Ph/MicroElec/BaseList          = "opt3" | "opt4"   (default "opt4")
-//   Ph/MicroElec/ElectronThreshold = 1. keV            (default 1 keV)
-//   Ph/MicroElec/ProtonThreshold   = 2. MeV            (default 2 MeV)
-//   Ph/MicroElec/UsePenelope       = "True"            (default True, opt4 only)
+//   Ph/MicroElec/BaseList             = "opt3" | "opt4" | "opt4_liv"
+//                                                       (default "opt4")
+//   Ph/MicroElec/ElectronThreshold    = 1. keV          (default 1 keV)
+//   Ph/MicroElec/ProtonThreshold      = 2. MeV          (default 2 MeV)
+//   Ph/MicroElec/LowEnergyIonisation  = "Penelope" | "Livermore" | "None"
+//                                       (default follows BaseList: Penelope for
+//                                       opt4, Livermore for opt4_liv, None for
+//                                       opt3; opt4 family only)
+//   Ph/MicroElec/UsePenelope          = "True"          (deprecated; "False" is
+//                                       an alias for LowEnergyIonisation="None")
 //
 // Optional surface work-function overrides (paired vectors, same length) let a
 // non-database bulk share its skin's work function so no spurious escape barrier
@@ -48,6 +55,8 @@
 // overrides; it does not register the base electron/photon processes. The
 // matching base list MUST also be present in Ph/<list>/Modules, e.g.:
 //   Ph/Default/Modules = 2 "g4em-standard_opt4" "g4em-microelec"
+// or, for the Livermore variant of opt4:
+//   Ph/Default/Modules = 2 "g4em-standard_opt4_liv" "g4em-microelec"
 // and BaseList must match that base list for the substitution to be consistent.
 
 #include "TsEmMicroElecPhysics.hh"
@@ -93,6 +102,7 @@
 #include "G4WentzelVIModel.hh"
 #include "G4MollerBhabhaModel.hh"
 #include "G4PenelopeIonisationModel.hh"
+#include "G4LivermoreIonisationModel.hh"
 #include "G4LindhardSorensenIonModel.hh"
 #include "G4EmStandUtil.hh"
 
@@ -172,9 +182,24 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/ProtonThreshold"))
 		pThreshold = fPm->GetDoubleParameter("Ph/MicroElec/ProtonThreshold", "Energy");
 
-	G4bool usePenelope = true;
+	// Low-energy (< 100 keV) electron ionisation model used above the MicroElec
+	// threshold. The default follows the base list; the deprecated UsePenelope
+	// = "False" is kept as an alias for "none".
+	G4String lowEnergyIoni = (baseList == "opt4") ? "penelope"
+	                       : (baseList == "opt4_liv") ? "livermore"
+	                       : "none";
+
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/UsePenelope"))
-		usePenelope = fPm->GetBooleanParameter("Ph/MicroElec/UsePenelope");
+	{
+		if (!fPm->GetBooleanParameter("Ph/MicroElec/UsePenelope"))
+			lowEnergyIoni = "none";
+	}
+
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/LowEnergyIonisation"))
+	{
+		lowEnergyIoni = fPm->GetStringParameter("Ph/MicroElec/LowEnergyIonisation");
+		G4StrUtil::to_lower(lowEnergyIoni);
+	}
 
 	// Surface work-function overrides: pair each material name with a WF value.
 	// The surface process treats any material absent from the MicroElec database
@@ -202,20 +227,41 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		}
 	}
 
-	if (baseList != "opt3" && baseList != "opt4")
+	if (baseList != "opt3" && baseList != "opt4" && baseList != "opt4_liv")
 	{
 		G4cerr << "TsEmMicroElecPhysics: unknown Ph/MicroElec/BaseList = \"" << baseList
-		       << "\". Allowed values are \"opt3\" and \"opt4\"." << G4endl;
+		       << "\". Allowed values are \"opt3\", \"opt4\" and \"opt4_liv\"." << G4endl;
 		if (fPm)
 			fPm->AbortSession(1);
 		baseList = "opt4";
+	}
+
+	if (lowEnergyIoni != "penelope" && lowEnergyIoni != "livermore" && lowEnergyIoni != "none")
+	{
+		G4cerr << "TsEmMicroElecPhysics: unknown Ph/MicroElec/LowEnergyIonisation = \"" << lowEnergyIoni
+		       << "\". Allowed values are \"Penelope\", \"Livermore\" and \"None\"." << G4endl;
+		if (fPm)
+			fPm->AbortSession(1);
+		lowEnergyIoni = "none";
+	}
+
+	// em_opt3 has no low-energy electron ionisation model, so any choice other
+	// than "none" would not reproduce the base list inside the region.
+	if (baseList == "opt3" && lowEnergyIoni != "none")
+	{
+		G4cerr << "TsEmMicroElecPhysics: Ph/MicroElec/LowEnergyIonisation = \"" << lowEnergyIoni
+		       << "\" is not consistent with Ph/MicroElec/BaseList = \"opt3\", which uses "
+		          "MollerBhabha over the whole range." << G4endl;
+		if (fPm)
+			fPm->AbortSession(1);
+		lowEnergyIoni = "none";
 	}
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: base list = " << baseList
 		       << ", electron threshold = " << eThreshold / keV << " keV"
 		       << ", proton threshold = " << pThreshold / MeV << " MeV"
-		       << ", use Penelope = " << (usePenelope ? "true" : "false") << G4endl;
+		       << ", low-energy ionisation = " << lowEnergyIoni << G4endl;
 
 	// ========================================================================
 	// Configure EM parameters
@@ -333,9 +379,10 @@ void TsEmMicroElecPhysics::ConstructProcess()
 
 	// Fixed crossover energies, matching the base lists:
 	//   opt4 msc:  GoudsmitSaunderson <= 100 MeV, WentzelVI above (MscEnergyLimit)
-	//   opt4 ioni: Penelope <= 100 keV, MollerBhabha above
+	//   opt4 ioni: Penelope (opt4) or Livermore (opt4_liv) <= 100 keV,
+	//              MollerBhabha above
 	const G4double mscHighLimit = 100.0 * MeV;   // GS / WentzelVI crossover (opt4)
-	const G4double peneHighLimit = 100.0 * keV;  // Penelope / MollerBhabha crossover (opt4)
+	const G4double lowEIoniHighLimit = 100.0 * keV;  // low-energy ioni / MollerBhabha crossover (opt4)
 	const G4double topLimit = 600.0 * MeV;       // upper bound of region overrides
 
 	// ------------------------------------------------------------------------
@@ -354,9 +401,10 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		mod->SetActivationLowEnergyLimit(eThreshold);
 		em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, topLimit, G4EmStandUtil::ModelOfFluctuations());
 	}
-	else // opt4
+	else // opt4 / opt4_liv
 	{
-		// msc: GoudsmitSaunderson (<= 100 MeV) + WentzelVI (> 100 MeV) (matches em_opt4)
+		// msc: GoudsmitSaunderson (<= 100 MeV) + WentzelVI (> 100 MeV)
+		// (identical in em_opt4 and its Livermore variant)
 		G4GoudsmitSaundersonMscModel* msc_gs = new G4GoudsmitSaundersonMscModel();
 		msc_gs->SetActivationLowEnergyLimit(eThreshold);
 		em_config->SetExtraEmModel("e-", "msc", msc_gs, "microelec", eThreshold, mscHighLimit);
@@ -365,17 +413,21 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		msc_wentzel->SetActivationLowEnergyLimit(mscHighLimit);
 		em_config->SetExtraEmModel("e-", "msc", msc_wentzel, "microelec", mscHighLimit, topLimit);
 
-		// eIoni: Penelope (<= 100 keV) + MollerBhabha (> 100 keV) (matches em_opt4).
-		// UsePenelope = false drops Penelope (NOT consistent with em_opt4).
-		if (usePenelope)
+		// eIoni: low-energy model (<= 100 keV) + MollerBhabha (> 100 keV).
+		// Penelope matches em_opt4, Livermore matches g4em-standard_opt4_liv;
+		// "none" drops the low-energy model (NOT consistent with either).
+		if (lowEnergyIoni != "none")
 		{
-			mod = new G4PenelopeIonisationModel();
+			if (lowEnergyIoni == "livermore")
+				mod = new G4LivermoreIonisationModel();
+			else
+				mod = new G4PenelopeIonisationModel();
 			mod->SetActivationLowEnergyLimit(eThreshold);
-			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, peneHighLimit, G4EmStandUtil::ModelOfFluctuations());
+			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", eThreshold, lowEIoniHighLimit, G4EmStandUtil::ModelOfFluctuations());
 
 			mod = new G4MollerBhabhaModel();
-			mod->SetActivationLowEnergyLimit(peneHighLimit);
-			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", peneHighLimit, topLimit, G4EmStandUtil::ModelOfFluctuations());
+			mod->SetActivationLowEnergyLimit(lowEIoniHighLimit);
+			em_config->SetExtraEmModel("e-", "eIoni", mod, "microelec", lowEIoniHighLimit, topLimit, G4EmStandUtil::ModelOfFluctuations());
 		}
 		else
 		{

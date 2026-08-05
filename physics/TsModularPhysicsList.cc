@@ -37,6 +37,7 @@
 
 #include "TsPhotoNeutron.hh"
 #include "TsEmMicroElecPhysics.hh"
+#include "TsEmStandardPhysicsOption4Livermore.hh"
 #include "TsGeometricalParticleSplit.hh"
 #include "TsGeometrySampler.hh"
 #include "TsIStore.hh"
@@ -177,6 +178,7 @@ TsModularPhysicsList::TsModularPhysicsList(TsParameterManager* pM, TsExtensionMa
 	fPhysicsTable.insert(std::make_pair("g4em-standard_opt2", new Creator<G4EmStandardPhysics_option2>()));
 	fPhysicsTable.insert(std::make_pair("g4em-standard_opt3", new Creator<G4EmStandardPhysics_option3>()));
 	fPhysicsTable.insert(std::make_pair("g4em-standard_opt4", new Creator<G4EmStandardPhysics_option4>()));
+	fPhysicsTable.insert(std::make_pair("g4em-standard_opt4_liv", new Creator<TsEmStandardPhysicsOption4Livermore>()));
 	fPhysicsTable.insert(std::make_pair("g4h-elastic_D", new Creator<G4HadronDElasticPhysics>()));
 	fPhysicsTable.insert(std::make_pair("g4h-elastic", new Creator<G4HadronElasticPhysics>()));
 	fPhysicsTable.insert(std::make_pair("g4h-elastic_HP", new Creator<G4HadronElasticPhysicsHP>()));
