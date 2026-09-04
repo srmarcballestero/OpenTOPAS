@@ -45,6 +45,14 @@
 //   Ph/MicroElec/UsePenelope          = "True"          (deprecated; "False" is
 //                                       an alias for LowEnergyIonisation="None")
 //
+// The MicroElec models for each heavy-particle species can be switched on and
+// off independently (electrons are always active). When a species is
+// deactivated, neither its MicroElec process nor its region model overrides are
+// registered, so the base list applies unchanged inside the region:
+//   Ph/MicroElec/ActivateProtonModels = "True"          (default True)
+//   Ph/MicroElec/ActivateAlphaModels  = "True"          (default True)
+//   Ph/MicroElec/ActivateIonModels    = "True"          (default True)
+//
 // Optional surface work-function overrides (paired vectors, same length) let a
 // non-database bulk share its skin's work function so no spurious escape barrier
 // appears at their interface; unlisted materials keep WF = 0 (air/vacuum-like):
@@ -182,6 +190,20 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	if (fPm && fPm->ParameterExists("Ph/MicroElec/ProtonThreshold"))
 		pThreshold = fPm->GetDoubleParameter("Ph/MicroElec/ProtonThreshold", "Energy");
 
+	// Per-species activation of the MicroElec models. A deactivated species keeps
+	// the base list over the whole region (no MicroElec process, no override).
+	G4bool activateProton = true;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/ActivateProtonModels"))
+		activateProton = fPm->GetBooleanParameter("Ph/MicroElec/ActivateProtonModels");
+
+	G4bool activateAlpha = true;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/ActivateAlphaModels"))
+		activateAlpha = fPm->GetBooleanParameter("Ph/MicroElec/ActivateAlphaModels");
+
+	G4bool activateIon = true;
+	if (fPm && fPm->ParameterExists("Ph/MicroElec/ActivateIonModels"))
+		activateIon = fPm->GetBooleanParameter("Ph/MicroElec/ActivateIonModels");
+
 	// Low-energy (< 100 keV) electron ionisation model used above the MicroElec
 	// threshold. The default follows the base list; the deprecated UsePenelope
 	// = "False" is kept as an alias for "none".
@@ -261,7 +283,10 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		G4cout << "TsEmMicroElecPhysics: base list = " << baseList
 		       << ", electron threshold = " << eThreshold / keV << " keV"
 		       << ", proton threshold = " << pThreshold / MeV << " MeV"
-		       << ", low-energy ionisation = " << lowEnergyIoni << G4endl;
+		       << ", low-energy ionisation = " << lowEnergyIoni
+		       << ", protons = " << (activateProton ? "on" : "off")
+		       << ", alphas = " << (activateAlpha ? "on" : "off")
+		       << ", ions = " << (activateIon ? "on" : "off") << G4endl;
 
 	// ========================================================================
 	// Configure EM parameters
@@ -335,7 +360,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		// PROTONS
 		// ====================================================================
-		else if (particleName == "proton")
+		else if (particleName == "proton" && activateProton)
 		{
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
 			G4MicroElecInelastic* microElecInelastic = new G4MicroElecInelastic("p_G4MicroElecInelastic");
@@ -346,7 +371,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		// ALPHA PARTICLES
 		// ====================================================================
-		else if (particleName == "alpha")
+		else if (particleName == "alpha" && activateAlpha)
 		{
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
@@ -358,7 +383,7 @@ void TsEmMicroElecPhysics::ConstructProcess()
 		// ====================================================================
 		// GENERIC IONS
 		// ====================================================================
-		else if (particleName == "GenericIon")
+		else if (particleName == "GenericIon" && activateIon)
 		{
 
 			// MicroElec inelastic (uses dummy model in World, activated in Target)
@@ -452,58 +477,64 @@ void TsEmMicroElecPhysics::ConstructProcess()
 	// ------------------------------------------------------------------------
 	// Protons in microelec region
 	// ------------------------------------------------------------------------
-
-	// hIoni: Bragg (<= 2 MeV) + BetheBloch (> 2 MeV), matching the base lists.
-	// If pThreshold < 2 MeV, Bragg fills the gap between the MicroElec threshold
-	// and the Bragg/BetheBloch crossover.
-	const G4double braggHighLimit = 2.0 * MeV;  // Bragg / BetheBloch crossover (proton)
-
-	if (pThreshold < braggHighLimit)
+	if (activateProton)
 	{
-		mod = new G4BraggModel();
-		mod->SetActivationLowEnergyLimit(pThreshold);
-		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, braggHighLimit, G4EmStandUtil::ModelOfFluctuations());
+		// hIoni: Bragg (<= 2 MeV) + BetheBloch (> 2 MeV), matching the base lists.
+		// If pThreshold < 2 MeV, Bragg fills the gap between the MicroElec threshold
+		// and the Bragg/BetheBloch crossover.
+		const G4double braggHighLimit = 2.0 * MeV;  // Bragg / BetheBloch crossover (proton)
 
-		mod = new G4BetheBlochModel();
-		mod->SetActivationLowEnergyLimit(braggHighLimit);
-		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", braggHighLimit, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
-	}
-	else
-	{
-		mod = new G4BetheBlochModel();
-		mod->SetActivationLowEnergyLimit(pThreshold);
-		em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
-	}
+		if (pThreshold < braggHighLimit)
+		{
+			mod = new G4BraggModel();
+			mod->SetActivationLowEnergyLimit(pThreshold);
+			em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, braggHighLimit, G4EmStandUtil::ModelOfFluctuations());
 
-	mod = new G4MicroElecInelasticModel_new();
-	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, pThreshold);
+			mod = new G4BetheBlochModel();
+			mod->SetActivationLowEnergyLimit(braggHighLimit);
+			em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", braggHighLimit, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
+		}
+		else
+		{
+			mod = new G4BetheBlochModel();
+			mod->SetActivationLowEnergyLimit(pThreshold);
+			em_config->SetExtraEmModel("proton", "hIoni", mod, "microelec", pThreshold, 10*TeV, G4EmStandUtil::ModelOfFluctuations());
+		}
+
+		mod = new G4MicroElecInelasticModel_new();
+		mod->SetActivationLowEnergyLimit(100*eV);
+		em_config->SetExtraEmModel("proton", "p_G4MicroElecInelastic", mod, "microelec", 100*eV, pThreshold);
+	}
 
 	// ------------------------------------------------------------------------
 	// Alpha particles in microelec region
 	// ------------------------------------------------------------------------
+	if (activateAlpha)
+	{
+		// ionIoni
+		mod = new G4BetheBlochModel();
+		mod->SetActivationLowEnergyLimit(7.9452*MeV);
+		em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 7.9452*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
 
-	// ionIoni
-	mod = new G4BetheBlochModel();
-	mod->SetActivationLowEnergyLimit(7.9452*MeV);
-	em_config->SetExtraEmModel("alpha", "ionIoni", mod, "microelec", 7.9452*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
-
-	mod = new G4MicroElecInelasticModel_new();
-	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 7.9452*MeV);
+		mod = new G4MicroElecInelasticModel_new();
+		mod->SetActivationLowEnergyLimit(100*eV);
+		em_config->SetExtraEmModel("alpha", "alpha_G4MicroElecInelastic", mod, "microelec", 0.0, 7.9452*MeV);
+	}
 
 	// ------------------------------------------------------------------------
 	// Generic ions in microelec region
 	// ------------------------------------------------------------------------
+	if (activateIon)
+	{
+		// ionIoni
+		mod = new G4LindhardSorensenIonModel();
+		mod->SetActivationLowEnergyLimit(10*MeV);
+		em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
 
-	// ionIoni
-	mod = new G4LindhardSorensenIonModel();
-	mod->SetActivationLowEnergyLimit(10*MeV);
-	em_config->SetExtraEmModel("GenericIon", "ionIoni", mod, "microelec", 10*MeV, 10*TeV, G4EmStandUtil::ModelOfFluctuations(true));
-
-	mod = new G4MicroElecInelasticModel_new();
-	mod->SetActivationLowEnergyLimit(100*eV);
-	em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
+		mod = new G4MicroElecInelasticModel_new();
+		mod->SetActivationLowEnergyLimit(100*eV);
+		em_config->SetExtraEmModel("GenericIon", "ion_G4MicroElecInelastic", mod, "microelec", 100*eV, 10*MeV);
+	}
 
 	if (fVerbose > 0)
 		G4cout << "TsEmMicroElecPhysics: MicroElec processes constructed successfully" << G4endl;
